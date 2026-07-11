@@ -1,1 +1,1321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>CCF Attendance</title>
+  <meta name="description" content="CCF Attendance Tracker – Light to Our Generation" />
+  <meta name="theme-color" content="#C8102E" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="CCF Attend" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --red:#C8102E; --red-dark:#A00D24; --red-dim:rgba(200,16,46,0.08);
+      --white:#FFFFFF; --snow:#FDF9F9; --border:#F0E8E9;
+      --grey-1:#F5F5F5; --grey-2:#E0E0E0; --grey-3:#9E9E9E; --grey-4:#616161; --grey-5:#212121;
+      --green:#16A34A; --green-bg:#DCFCE7; --amber:#D97706; --amber-bg:#FEF3C7;
+      --r:14px; --r-sm:10px; --sh:0 2px 16px rgba(0,0,0,0.07); --sh-red:0 4px 20px rgba(200,16,46,0.22);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html,body{height:100%;font-family:'Inter',sans-serif;background:var(--snow);color:var(--grey-5);-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+    button{cursor:pointer;border:none;font-family:inherit;-webkit-tap-highlight-color:transparent;}
+    input,select,textarea{font-family:inherit;-webkit-appearance:none;appearance:none;font-size:16px;}
+    .screen{display:none;min-height:100dvh;flex-direction:column;}
+    .screen.active{display:flex;}
+    #toast{position:fixed;bottom:calc(28px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(70px);background:var(--grey-5);color:#fff;padding:11px 22px;border-radius:100px;font-size:13px;font-weight:500;transition:transform .3s cubic-bezier(.34,1.56,.64,1);z-index:9999;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center;}
+    #toast.show{transform:translateX(-50%) translateY(0);}
+    #toast.ok{background:var(--green);}
+    #toast.err{background:var(--red);}
+    #loadingOverlay{position:fixed;inset:0;background:var(--red);display:flex;align-items:center;justify-content:center;z-index:99999;flex-direction:column;gap:16px;}
+    #loadingOverlay .spin{width:36px;height:36px;border:3px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .7s linear infinite;}
+    #loadingOverlay p{color:white;font-size:13px;opacity:.8;font-family:'Montserrat',sans-serif;font-weight:600;letter-spacing:1px;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .auth-bg{flex:1;display:flex;align-items:center;justify-content:center;padding:24px 16px;background:var(--red);min-height:100dvh;}
+    .auth-card{background:var(--white);border-radius:20px;width:100%;max-width:400px;overflow:hidden;box-shadow:0 16px 48px rgba(0,0,0,0.18);}
+    .auth-card-top{background:var(--red);padding:28px 24px 24px;text-align:center;}
+    .auth-wordmark{font-family:'Montserrat',sans-serif;font-weight:900;font-size:42px;letter-spacing:6px;color:var(--white);line-height:1;}
+    .auth-mantra{font-family:'Montserrat',sans-serif;font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.65);margin-top:7px;}
+    .auth-card-body{padding:24px 20px 28px;}
+    .auth-heading{font-family:'Montserrat',sans-serif;font-size:15px;font-weight:700;color:var(--grey-5);margin-bottom:18px;}
+    .fg{margin-bottom:14px;}
+    .fg label{display:block;font-size:11px;font-weight:600;color:var(--grey-3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px;}
+    .fg input,.fg select,.fg textarea{width:100%;padding:13px 14px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;color:var(--grey-5);background:var(--snow);transition:border-color .2s;outline:none;-webkit-appearance:none;}
+    .fg textarea{resize:vertical;min-height:80px;line-height:1.5;font-size:15px;}
+    .fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--red);background:var(--white);}
+    .btn-red{display:block;width:100%;padding:15px;background:var(--red);color:var(--white);font-family:'Montserrat',sans-serif;font-size:14px;font-weight:700;letter-spacing:.5px;border-radius:var(--r-sm);transition:background .15s;margin-top:6px;text-align:center;border:none;}
+    .btn-red:active{background:var(--red-dark);}
+    .btn-red:disabled{background:var(--grey-2);color:var(--grey-3);cursor:not-allowed;}
+    .btn-ghost{display:block;width:100%;padding:13px;background:transparent;color:var(--grey-4);font-size:14px;font-weight:600;border:1.5px solid var(--border);border-radius:var(--r-sm);margin-top:10px;text-align:center;transition:border-color .2s;}
+    .btn-ghost:active{border-color:var(--red);color:var(--red);}
+    .auth-footer{text-align:center;margin-top:16px;font-size:13px;color:var(--grey-3);}
+    .auth-footer a{color:var(--red);font-weight:600;cursor:pointer;}
+    .nav{background:var(--red);color:var(--white);padding:calc(14px + env(safe-area-inset-top)) 16px 12px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:var(--sh-red);}
+    .nav-left{display:flex;align-items:center;gap:10px;min-width:0;}
+    .nav-brand{font-family:'Montserrat',sans-serif;font-weight:900;font-size:17px;letter-spacing:2px;color:var(--white);flex-shrink:0;}
+    .nav-divider{width:1px;height:22px;background:rgba(255,255,255,.25);flex-shrink:0;}
+    .nav-info{min-width:0;}
+    .nav-info h2{font-family:'Montserrat',sans-serif;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .nav-info p{font-size:10px;opacity:.7;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .btn-signout{background:rgba(255,255,255,.15);color:var(--white);padding:7px 12px;border-radius:100px;font-size:11px;font-weight:600;flex-shrink:0;white-space:nowrap;}
+    .btn-signout:active{background:rgba(255,255,255,.28);}
+    .body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 14px calc(100px + env(safe-area-inset-bottom));}
+    @media(min-width:600px){.body{max-width:680px;margin:0 auto;padding-left:20px;padding-right:20px;}}
+    .card{background:var(--white);border-radius:var(--r);padding:14px;margin-bottom:12px;box-shadow:var(--sh);}
+    .card-label{font-size:11px;font-weight:600;color:var(--grey-3);text-transform:uppercase;letter-spacing:.8px;display:block;margin-bottom:7px;}
+    .card select{width:100%;padding:11px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:15px;color:var(--grey-5);background:var(--snow);outline:none;-webkit-appearance:none;}
+    .banner{background:var(--red);border-radius:var(--r);padding:18px;margin-bottom:12px;box-shadow:var(--sh-red);color:var(--white);}
+    .banner h3{font-family:'Montserrat',sans-serif;font-size:18px;font-weight:800;}
+    .banner p{font-size:12px;opacity:.75;margin-top:3px;}
+    .live-pill{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.18);border-radius:100px;padding:4px 11px;font-size:11px;font-weight:600;margin-top:10px;}
+    .dot{width:7px;height:7px;border-radius:50%;background:#4ADE80;animation:blink 1.5s infinite;}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px;}
+    .stat{background:var(--white);border-radius:var(--r-sm);padding:11px 6px;text-align:center;box-shadow:var(--sh);}
+    .stat-num{font-family:'Montserrat',sans-serif;font-size:22px;font-weight:900;color:var(--red);line-height:1;}
+    .stat-num.dim{color:var(--grey-2);}
+    .stat-lbl{font-size:9px;color:var(--grey-3);text-transform:uppercase;letter-spacing:.5px;margin-top:3px;}
+    .search{display:flex;align-items:center;gap:8px;background:var(--white);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:11px 13px;margin-bottom:10px;}
+    .search svg{width:15px;height:15px;fill:var(--grey-3);flex-shrink:0;}
+    .search input{flex:1;border:none;background:transparent;font-size:15px;color:var(--grey-5);outline:none;-webkit-appearance:none;}
+    .search input::placeholder{color:var(--grey-3);}
+    .lhdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+    .lhdr h4{font-family:'Montserrat',sans-serif;font-size:13px;font-weight:700;}
+    .lhdr span{font-size:11px;color:var(--grey-3);}
+    .mrow{background:var(--white);border-radius:var(--r-sm);display:flex;align-items:center;gap:10px;padding:11px 12px;margin-bottom:7px;box-shadow:0 1px 6px rgba(0,0,0,.05);}
+    .avatar{width:36px;height:36px;border-radius:50%;background:var(--grey-1);display:flex;align-items:center;justify-content:center;font-family:'Montserrat',sans-serif;font-weight:700;font-size:12px;color:var(--grey-4);flex-shrink:0;}
+    .avatar.on{background:rgba(200,16,46,.12);color:var(--red);}
+    .minfo{flex:1;min-width:0;}
+    .mname{font-size:14px;font-weight:600;}
+    .mstatus{font-size:11px;color:var(--grey-3);margin-top:1px;}
+    .tog{width:48px;height:26px;border-radius:100px;background:var(--grey-2);flex-shrink:0;position:relative;transition:background .22s;border:none;}
+    .tog.on{background:var(--green);}
+    .tog::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--white);box-shadow:0 1px 4px rgba(0,0,0,.18);transition:transform .22s cubic-bezier(.34,1.56,.64,1);}
+    .tog.on::after{transform:translateX(22px);}
+    .note-btn{background:var(--red-dim);color:var(--red);border:none;border-radius:6px;padding:6px 9px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;margin-right:4px;}
+    .note-btn.has-note{background:rgba(200,16,46,.18);}
+    .del-btn{background:var(--grey-1);color:var(--grey-4);border:none;border-radius:6px;padding:6px 9px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;margin-right:4px;}
+    .del-btn:active{background:var(--grey-2);}
+    .info-btn{background:rgba(200,16,46,.08);color:var(--red);border:none;border-radius:6px;padding:6px 9px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;margin-right:4px;}
+    .info-btn:active{background:rgba(200,16,46,.18);}
+    .add-row{display:flex;gap:8px;margin-top:14px;}
+    .add-row input{flex:1;padding:12px 13px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:15px;background:var(--white);color:var(--grey-5);outline:none;-webkit-appearance:none;}
+    .add-row input:focus{border-color:var(--red);}
+    .btn-add{background:var(--red);color:var(--white);padding:12px 16px;border-radius:var(--r-sm);font-size:13px;font-weight:700;font-family:'Montserrat',sans-serif;white-space:nowrap;border:none;}
+    .btn-add:active{background:var(--red-dark);}
+    .cred-box{background:var(--white);border-radius:var(--r-sm);padding:14px;margin-top:8px;box-shadow:var(--sh);border:1.5px solid var(--border);}
+    .cred-box p{font-size:12px;color:var(--grey-4);margin-bottom:12px;line-height:1.5;}
+    .fab{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom));left:14px;right:14px;background:var(--red);color:var(--white);padding:16px;border-radius:var(--r-sm);font-family:'Montserrat',sans-serif;font-size:15px;font-weight:700;letter-spacing:.4px;box-shadow:var(--sh-red);transition:background .15s;text-align:center;border:none;z-index:50;}
+    .fab:active{background:var(--red-dark);}
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:999;padding:20px;}
+    .ocard{background:var(--white);border-radius:20px;padding:28px 20px;text-align:center;max-width:320px;width:100%;}
+    .ocard .icon{width:60px;height:60px;border-radius:50%;background:var(--green-bg);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;}
+    .ocard .icon svg{width:30px;height:30px;fill:var(--green);}
+    .ocard h3{font-family:'Montserrat',sans-serif;font-size:18px;font-weight:800;margin-bottom:7px;}
+    .ocard p{font-size:13px;color:var(--grey-4);line-height:1.55;}
+    .note-modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center;z-index:1000;}
+    .note-modal-card{background:var(--white);border-radius:20px 20px 0 0;padding:24px 18px calc(28px + env(safe-area-inset-bottom));width:100%;max-width:540px;max-height:90dvh;overflow-y:auto;}
+    .note-modal-card h3{font-family:'Montserrat',sans-serif;font-size:16px;font-weight:800;margin-bottom:4px;}
+    .note-modal-card p{font-size:12px;color:var(--grey-3);margin-bottom:14px;}
+    .tab-scroll-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:14px;scrollbar-width:none;}
+    .tab-scroll-wrap::-webkit-scrollbar{display:none;}
+    .tabs{display:flex;background:var(--white);border-radius:var(--r-sm);padding:4px;box-shadow:var(--sh);min-width:max-content;width:100%;gap:2px;}
+    .tab{padding:9px 10px;text-align:center;font-size:11px;font-weight:700;color:var(--grey-3);border-radius:8px;transition:all .2s;background:transparent;font-family:'Montserrat',sans-serif;white-space:nowrap;border:none;flex:1;min-width:52px;}
+    .tab.on{background:var(--red);color:var(--white);}
+    .panel{display:none;}
+    .panel.on{display:block;}
+    .scard{background:var(--white);border-radius:var(--r);padding:14px;margin-bottom:12px;box-shadow:var(--sh);}
+    .scard-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+    .scard-title{font-family:'Montserrat',sans-serif;font-size:14px;font-weight:700;}
+    .badge{padding:3px 9px;border-radius:100px;font-size:11px;font-weight:700;}
+    .badge.g{background:var(--green-bg);color:var(--green);}
+    .badge.a{background:var(--amber-bg);color:var(--amber);}
+    .badge.r{background:rgba(200,16,46,.1);color:var(--red);}
+    .badge.p{background:var(--grey-1);color:var(--grey-3);}
+    .badge.b{background:rgba(59,130,246,.1);color:#3B82F6;}
+    .pbar{height:7px;background:var(--grey-1);border-radius:100px;overflow:hidden;margin-top:5px;}
+    .pfill{height:100%;border-radius:100px;transition:width .55s;}
+    .pfill.g{background:var(--green);}
+    .pfill.a{background:var(--amber);}
+    .pfill.r{background:var(--red);}
+    .plabels{display:flex;justify-content:space-between;font-size:11px;color:var(--grey-4);}
+    .sum-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+    .sum-mini{background:var(--white);border-radius:var(--r-sm);padding:11px 6px;text-align:center;box-shadow:var(--sh);}
+    .sum-val{font-family:'Montserrat',sans-serif;font-size:20px;font-weight:900;color:var(--red);}
+    .sum-lbl{font-size:9px;color:var(--grey-3);text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
+    .chips{display:flex;gap:7px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;margin-bottom:12px;scrollbar-width:none;}
+    .chips::-webkit-scrollbar{display:none;}
+    .chip{padding:7px 14px;border-radius:100px;font-size:12px;font-weight:600;background:var(--white);color:var(--grey-4);border:1.5px solid var(--border);white-space:nowrap;flex-shrink:0;cursor:pointer;}
+    .chip.on{background:var(--red);color:var(--white);border-color:var(--red);}
+    .htbl{width:100%;border-collapse:collapse;}
+    .htbl th{text-align:left;font-size:10px;font-weight:600;color:var(--grey-3);text-transform:uppercase;letter-spacing:.5px;padding:7px 8px;border-bottom:1px solid var(--border);}
+    .htbl td{padding:9px 8px;font-size:12px;border-bottom:1px solid var(--grey-1);vertical-align:top;}
+    .htbl tr:last-child td{border-bottom:none;}
+    .setup-section{background:var(--white);border-radius:var(--r);padding:14px;margin-bottom:12px;box-shadow:var(--sh);}
+    .setup-section h4{font-family:'Montserrat',sans-serif;font-size:11px;font-weight:700;color:var(--grey-3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;}
+    .urow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--grey-1);}
+    .urow:last-child{border-bottom:none;}
+    .uinfo{flex:1;}
+    .uname{font-size:13px;font-weight:600;}
+    .umeta{font-size:11px;color:var(--grey-3);}
+    .rbadge{padding:3px 9px;border-radius:100px;font-size:10px;font-weight:700;}
+    .rbadge.leader{background:var(--grey-1);color:var(--grey-4);}
+    .unit-type-hd{font-family:'Montserrat',sans-serif;font-size:11px;font-weight:800;color:var(--grey-3);text-transform:uppercase;letter-spacing:1.2px;margin:16px 0 8px;padding-bottom:5px;border-bottom:1.5px solid var(--border);}
+    .rep-row{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--grey-1);font-size:12px;gap:8px;}
+    .rep-row:last-child{border-bottom:none;}
+    .rep-key{color:var(--grey-4);flex-shrink:0;}
+    .rep-val{font-weight:700;color:var(--grey-5);text-align:right;}
+    .mem-hero{background:var(--red);padding:24px 18px 20px;color:var(--white);}
+    .mem-hero h2{font-family:'Montserrat',sans-serif;font-size:20px;font-weight:900;}
+    .mem-hero p{font-size:12px;opacity:.75;margin-top:4px;}
+    .mem-unit-badge{display:inline-block;background:rgba(255,255,255,.18);border-radius:100px;padding:5px 14px;font-size:12px;font-weight:700;margin-top:10px;}
+    .empty{text-align:center;padding:28px 16px;font-size:13px;color:var(--grey-3);}
+    .loc-toggle-card{background:var(--white);border-radius:var(--r);padding:16px;margin-bottom:12px;box-shadow:var(--sh);display:flex;align-items:center;gap:14px;}
+    .loc-toggle-icon{width:44px;height:44px;border-radius:50%;background:var(--red-dim);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;transition:background .25s;}
+    .loc-toggle-icon.active{background:rgba(22,163,74,.12);}
+    .loc-toggle-info{flex:1;min-width:0;}
+    .loc-toggle-title{font-size:14px;font-weight:700;color:var(--grey-5);}
+    .loc-toggle-sub{font-size:11px;color:var(--grey-3);margin-top:3px;}
+    .loc-big-tog{width:54px;height:30px;border-radius:100px;background:var(--grey-2);flex-shrink:0;position:relative;transition:background .25s;border:none;cursor:pointer;}
+    .loc-big-tog.on{background:var(--green);}
+    .loc-big-tog::after{content:'';position:absolute;top:4px;left:4px;width:22px;height:22px;border-radius:50%;background:var(--white);box-shadow:0 1px 4px rgba(0,0,0,.2);transition:transform .25s cubic-bezier(.34,1.56,.64,1);}
+    .loc-big-tog.on::after{transform:translateX(24px);}
+    .loc-section-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+    .loc-section-hd h4{font-family:'Montserrat',sans-serif;font-size:13px;font-weight:700;}
+    .loc-refresh-btn{background:var(--grey-1);color:var(--grey-5);border:none;border-radius:8px;padding:7px 13px;font-size:12px;font-weight:700;cursor:pointer;}
+    .loc-refresh-btn:active{background:var(--grey-2);}
+    .loc-row{background:var(--white);border-radius:var(--r-sm);padding:11px 13px;margin-bottom:7px;box-shadow:0 1px 6px rgba(0,0,0,.05);display:flex;align-items:center;gap:10px;}
+    .loc-dot{width:10px;height:10px;border-radius:50%;background:var(--grey-2);flex-shrink:0;}
+    .loc-dot.live{background:var(--green);box-shadow:0 0 0 3px rgba(22,163,74,.18);}
+    .loc-info{flex:1;min-width:0;}
+    .loc-name{font-size:14px;font-weight:600;}
+    .loc-meta{font-size:11px;color:var(--grey-3);margin-top:1px;}
+    .loc-map-btn{background:var(--red-dim);color:var(--red);border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+    .loc-map-btn:active{background:rgba(200,16,46,.18);}
+    /* member profile card */
+    .profile-detail{display:flex;gap:8px;padding:7px 0;border-bottom:1px solid var(--grey-1);font-size:12px;}
+    .profile-detail:last-child{border-bottom:none;}
+    .profile-key{color:var(--grey-3);width:90px;flex-shrink:0;font-weight:600;}
+    .profile-val{color:var(--grey-5);font-weight:500;flex:1;}
+    /* attendance names tag list */
+    .name-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+    .name-tag{background:var(--green-bg);color:var(--green);border-radius:100px;padding:3px 10px;font-size:11px;font-weight:600;}
+    /* complaint row */
+    .complaint-row{padding:12px 0;border-bottom:1px solid var(--grey-1);}
+    .complaint-row:last-child{border-bottom:none;}
+    .complaint-meta{font-size:11px;color:var(--grey-3);margin-bottom:4px;}
+    .complaint-text{font-size:13px;color:var(--grey-5);line-height:1.55;}
+    /* leader report section */
+    .report-section{background:var(--white);border-radius:var(--r);padding:14px;margin-bottom:12px;box-shadow:var(--sh);}
+    .report-section h4{font-family:'Montserrat',sans-serif;font-size:12px;font-weight:800;color:var(--grey-4);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;}
+  </style>
+</head>
+<body>
 
+<div id="loadingOverlay"><div class="spin"></div><p>LOADING…</p></div>
+<div id="toast"></div>
+
+<!-- MEMBER PROFILE MODAL -->
+<div id="profileModal" class="note-modal" style="display:none" onclick="if(event.target===this)closeProfileModal()">
+  <div class="note-modal-card">
+    <h3 id="profileModalName">Member Profile</h3>
+    <p id="profileModalUnit" style="margin-bottom:16px"></p>
+    <div id="profileModalBody"></div>
+    <button class="btn-ghost" style="margin-top:14px" onclick="closeProfileModal()">Close</button>
+  </div>
+</div>
+
+<!-- NOTE MODAL -->
+<div id="noteModal" class="note-modal" style="display:none" onclick="if(event.target===this)closeNoteModal()">
+  <div class="note-modal-card">
+    <h3 id="noteModalTitle">Member Note</h3>
+    <p>Notes are saved privately and only visible to you.</p>
+    <div class="fg"><label>Note</label><textarea id="noteText" placeholder="e.g. Follow up next week."></textarea></div>
+    <button class="btn-red" onclick="saveNote()">Save Note</button>
+    <button class="btn-ghost" onclick="closeNoteModal()">Cancel</button>
+  </div>
+</div>
+
+<!-- ADD MEMBER MODAL -->
+<div id="addMemberModal" class="note-modal" style="display:none" onclick="if(event.target===this)cancelAddMember()">
+  <div class="note-modal-card">
+    <h3>Add Member</h3>
+    <p style="margin-bottom:16px">Fill in member details. Username and password are optional — they allow the member to log in.</p>
+    <div class="fg"><label>Full Name *</label><input type="text" id="mNewName" placeholder="Member's full name"/></div>
+    <div class="fg"><label>Programme of Study</label><input type="text" id="mNewProg" placeholder="e.g. BSc Computer Science"/></div>
+    <div class="fg"><label>Hall / Hostel of Residence</label><input type="text" id="mNewHall" placeholder="e.g. Commonwealth Hall"/></div>
+    <div class="fg"><label>Phone Number</label><input type="tel" id="mNewPhone" placeholder="e.g. 0241234567"/></div>
+    <div style="height:1px;background:var(--border);margin:10px 0 14px"></div>
+    <div class="fg"><label>Username (optional)</label><input type="text" id="mNewUser" placeholder="Choose a username" autocomplete="off"/></div>
+    <div class="fg" style="margin-bottom:16px"><label>Password (optional)</label><input type="password" id="mNewPass" placeholder="Choose a password" autocomplete="off"/></div>
+    <button class="btn-red" onclick="confirmAddMember()">Add Member</button>
+    <button class="btn-ghost" onclick="cancelAddMember()">Cancel</button>
+  </div>
+</div>
+
+<!-- SUBMIT OVERLAY -->
+<div id="oSubmit" class="overlay" style="display:none">
+  <div class="ocard">
+    <div class="icon"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+    <h3>Submitted!</h3><p id="oMsg"></p>
+    <button class="btn-red" style="margin-top:16px" onclick="closeSubmit()">Done</button>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div id="sLogin" class="screen">
+  <div class="auth-bg">
+    <div class="auth-card">
+      <div class="auth-card-top">
+        <div class="auth-wordmark">CCF</div>
+        <div class="auth-mantra">Light to Our Generation</div>
+      </div>
+      <div class="auth-card-body">
+        <div class="auth-heading">Sign in to your account</div>
+        <div class="fg"><label>Username</label><input type="text" id="lUser" placeholder="Enter username" autocomplete="username" inputmode="text"/></div>
+        <div class="fg"><label>Password</label><input type="password" id="lPass" placeholder="Enter password" autocomplete="current-password"/></div>
+        <button class="btn-red" id="loginBtn" onclick="doLogin()">Sign In</button>
+        <div class="auth-footer">New unit leader? <a onclick="show('sRegister')">Register here</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- REGISTER -->
+<div id="sRegister" class="screen">
+  <div class="auth-bg">
+    <div class="auth-card">
+      <div class="auth-card-top">
+        <div class="auth-wordmark">CCF</div>
+        <div class="auth-mantra">Light to Our Generation</div>
+      </div>
+      <div class="auth-card-body">
+        <div class="auth-heading">Create a leader account</div>
+        <div class="fg"><label>Unit Type</label>
+          <select id="rUnitType">
+            <option value="Hall">Hall</option>
+            <option value="Hostel">Hostel</option>
+            <option value="Department">Department</option>
+          </select>
+        </div>
+        <div class="fg"><label>Unit Name</label><input type="text" id="rUnit" placeholder="e.g. Unity Hall, Engineering Dept…"/></div>
+        <div class="fg"><label>Your Full Name</label><input type="text" id="rName" placeholder="Your name"/></div>
+        <div class="fg"><label>Username</label><input type="text" id="rUser" placeholder="Choose a username" autocomplete="username"/></div>
+        <div class="fg"><label>Password</label><input type="password" id="rPass" placeholder="Choose a password" autocomplete="new-password"/></div>
+        <button class="btn-red" id="registerBtn" onclick="doRegister()">Create Account</button>
+        <button class="btn-ghost" onclick="show('sLogin')">← Back to Sign In</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LEADER SCREEN -->
+<div id="sLeader" class="screen">
+  <div class="nav">
+    <div class="nav-left">
+      <div class="nav-brand">CCF</div><div class="nav-divider"></div>
+      <div class="nav-info"><h2 id="lNavUnit">—</h2><p id="lNavName">Leader</p></div>
+    </div>
+    <button class="btn-signout" onclick="doLogout()">Sign Out</button>
+  </div>
+  <div class="body">
+    <!-- Attendance -->
+    <div class="card">
+      <span class="card-label">Service</span>
+      <select id="svcSel">
+        <option value="s1">Sunday Service</option>
+        <option value="mw">Midweek Service</option>
+        <option value="pm">Prayer Meeting</option>
+        <option value="sp">Special Programme</option>
+      </select>
+    </div>
+    <div class="banner">
+      <h3 id="banUnit">—</h3><p id="banDate">—</p>
+      <div class="live-pill"><div class="dot"></div>Live Attendance</div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="stat-num" id="sP">0</div><div class="stat-lbl">Present</div></div>
+      <div class="stat"><div class="stat-num dim" id="sA">0</div><div class="stat-lbl">Absent</div></div>
+      <div class="stat"><div class="stat-num" id="sT">0</div><div class="stat-lbl">Total</div></div>
+      <div class="stat"><div class="stat-num" id="sPct">0%</div><div class="stat-lbl">Rate</div></div>
+    </div>
+    <div class="search">
+      <svg viewBox="0 0 24 24"><path d="M10 2a8 8 0 105.29 13.71l4.5 4.5 1.42-1.42-4.5-4.5A8 8 0 0010 2zm0 2a6 6 0 110 12A6 6 0 0110 4z"/></svg>
+      <input type="text" id="mSearch" placeholder="Search members…" oninput="renderMembers()"/>
+    </div>
+    <div class="lhdr"><h4>Members</h4><span id="mCount"></span></div>
+    <div id="mList"></div>
+    <div style="margin-top:10px">
+      <button class="btn-add" style="width:100%;border-radius:var(--r-sm)" onclick="openAddMemberModal()">+ Add Member</button>
+    </div>
+
+    <!-- Dawn Broadcast Report -->
+    <div style="height:20px"></div>
+    <div class="report-section">
+      <h4>📢 Dawn Broadcast Report</h4>
+      <div class="fg"><label>Date</label><input type="date" id="dbDate"/></div>
+      <div class="fg"><label>Number of Participants</label><input type="number" id="dbCount" placeholder="e.g. 12" min="0"/></div>
+      <div class="fg" style="margin-bottom:0"><label>Notes / Observations</label><textarea id="dbNotes" placeholder="Any observations or highlights…" style="min-height:60px"></textarea></div>
+      <button class="btn-red" style="margin-top:12px" onclick="submitDawnBroadcast()">Submit Dawn Broadcast</button>
+    </div>
+
+    <!-- Departmental Meeting Report -->
+    <div class="report-section">
+      <h4>🏛 Departmental Meeting Report</h4>
+      <div class="fg"><label>Date</label><input type="date" id="dmDate"/></div>
+      <div class="fg"><label>Agenda / Topic</label><input type="text" id="dmAgenda" placeholder="e.g. Welfare, Evangelism planning…"/></div>
+      <div class="fg"><label>Number Present</label><input type="number" id="dmCount" placeholder="e.g. 8" min="0"/></div>
+      <div class="fg" style="margin-bottom:0"><label>Minutes / Summary</label><textarea id="dmNotes" placeholder="Brief summary of what was discussed…" style="min-height:60px"></textarea></div>
+      <button class="btn-red" style="margin-top:12px" onclick="submitDeptMeeting()">Submit Meeting Report</button>
+    </div>
+
+    <!-- Member locations -->
+    <div style="height:4px"></div>
+    <div class="loc-section-hd">
+      <h4>📍 Member Locations</h4>
+      <button class="loc-refresh-btn" onclick="loadLeaderLocations()">Refresh</button>
+    </div>
+    <div id="leaderLocList"><div class="empty" style="padding:14px 0">No members sharing location yet.</div></div>
+  </div>
+  <button class="fab" onclick="submitAtt()">✓ Submit Attendance</button>
+</div>
+
+<!-- MEMBER SCREEN -->
+<div id="sMember" class="screen">
+  <div class="nav">
+    <div class="nav-left">
+      <div class="nav-brand">CCF</div><div class="nav-divider"></div>
+      <div class="nav-info"><h2 id="memNavUnit">—</h2><p id="memNavName">Member</p></div>
+    </div>
+    <button class="btn-signout" onclick="doLogout()">Sign Out</button>
+  </div>
+  <div class="body">
+    <div class="mem-hero">
+      <h2 id="memHeroName">Welcome</h2>
+      <p id="memHeroUnit">—</p>
+      <div class="mem-unit-badge" id="memUnitBadge">—</div>
+    </div>
+    <div style="height:14px"></div>
+
+    <!-- Location sharing -->
+    <div class="loc-toggle-card">
+      <div class="loc-toggle-icon" id="locToggleIcon">📍</div>
+      <div class="loc-toggle-info">
+        <div class="loc-toggle-title">Share My Location</div>
+        <div class="loc-toggle-sub" id="locToggleSub">Off — your leader cannot see you</div>
+      </div>
+      <button class="loc-big-tog" id="locBigTog" onclick="toggleMemberLocation()"></button>
+    </div>
+
+    <!-- Complaints box -->
+    <div class="scard">
+      <div class="scard-hd"><div class="scard-title">📬 Send a Complaint</div></div>
+      <p style="font-size:12px;color:var(--grey-3);margin-bottom:12px;line-height:1.5">Your complaint goes directly to the admin. Your name and unit will be attached.</p>
+      <div class="fg"><label>Your Complaint</label><textarea id="complaintText" placeholder="Describe your issue or concern here…" style="min-height:100px"></textarea></div>
+      <button class="btn-red" id="complaintBtn" onclick="sendComplaint()">Send to Admin</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN SCREEN -->
+<div id="sAdmin" class="screen">
+  <div class="nav">
+    <div class="nav-left">
+      <div class="nav-brand">CCF</div><div class="nav-divider"></div>
+      <div class="nav-info"><h2>Admin</h2><p id="aNavName">Dashboard</p></div>
+    </div>
+    <button class="btn-signout" onclick="doLogout()">Sign Out</button>
+  </div>
+  <div class="body">
+    <div class="tab-scroll-wrap">
+      <div class="tabs" id="adminTabs">
+        <button class="tab on"  onclick="switchTab('Overview')">Overview</button>
+        <button class="tab"     onclick="switchTab('Halls')">Halls</button>
+        <button class="tab"     onclick="switchTab('Hostels')">Hostels</button>
+        <button class="tab"     onclick="switchTab('Depts')">Depts</button>
+        <button class="tab"     onclick="switchTab('Reports')">Reports</button>
+        <button class="tab"     onclick="switchTab('Members')">Members</button>
+        <button class="tab"     onclick="switchTab('Complaints')">📬</button>
+        <button class="tab"     onclick="switchTab('History')">History</button>
+        <button class="tab"     onclick="switchTab('Setup')">Setup</button>
+      </div>
+    </div>
+
+    <!-- Overview -->
+    <div id="pOverview" class="panel on">
+      <div style="margin-bottom:12px">
+        <select id="aSvc" onchange="renderOverview()" style="width:100%;padding:11px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:15px;background:var(--white);outline:none;-webkit-appearance:none;">
+          <option value="s1">Sunday Service</option>
+          <option value="mw">Midweek Service</option>
+          <option value="pm">Prayer Meeting</option>
+          <option value="sp">Special Programme</option>
+        </select>
+      </div>
+      <div class="sum-grid" id="oSum"></div>
+      <div id="oCards"></div>
+    </div>
+
+    <div id="pHalls"   class="panel"><div id="hCardsHall"><div class="empty">Loading…</div></div></div>
+    <div id="pHostels" class="panel"><div id="hCardsHostel"><div class="empty">Loading…</div></div></div>
+    <div id="pDepts"   class="panel"><div id="hCardsDepartment"><div class="empty">Loading…</div></div></div>
+
+    <!-- Reports (attendance + dawn broadcast + dept meeting) -->
+    <div id="pReports" class="panel">
+      <div class="scard" style="margin-bottom:12px">
+        <div class="scard-hd" style="margin-bottom:10px"><div class="scard-title">Filter</div></div>
+        <div class="fg" style="margin-bottom:10px"><label>Unit</label><select id="repUnit" onchange="renderReports()"><option value="all">All Units</option></select></div>
+        <div class="fg" style="margin-bottom:0"><label>Report Type</label>
+          <select id="repType" onchange="renderReports()">
+            <option value="all">All Reports</option>
+            <option value="attendance">Attendance</option>
+            <option value="dawn">Dawn Broadcast</option>
+            <option value="dept">Departmental Meeting</option>
+          </select>
+        </div>
+      </div>
+      <div id="repOut"></div>
+    </div>
+
+    <!-- Members panel -->
+    <div id="pMembers" class="panel">
+      <div class="scard" style="margin-bottom:12px">
+        <div class="fg" style="margin-bottom:0"><label>Filter by Unit</label>
+          <select id="memberUnitFilter" onchange="renderAdminMembers()" style="width:100%;padding:11px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:15px;background:var(--white);outline:none;-webkit-appearance:none;">
+            <option value="all">All Units</option>
+          </select>
+        </div>
+      </div>
+      <div id="adminMemberList"><div class="empty">Loading…</div></div>
+    </div>
+
+    <!-- Complaints -->
+    <div id="pComplaints" class="panel">
+      <div class="scard-hd" style="margin-bottom:10px">
+        <div class="scard-title" style="font-family:'Montserrat',sans-serif;font-size:14px;font-weight:700">Member Complaints</div>
+        <span id="complaintCount" style="font-size:11px;color:var(--grey-3)"></span>
+      </div>
+      <div id="complaintList"><div class="empty">No complaints yet.</div></div>
+    </div>
+
+    <!-- History -->
+    <div id="pHistory" class="panel">
+      <div class="chips" id="hChips"></div>
+      <div class="scard" style="overflow-x:auto">
+        <table class="htbl">
+          <thead><tr><th>Date</th><th>Unit</th><th>Service</th><th>Present</th><th>Total</th><th>%</th><th>Names</th></tr></thead>
+          <tbody id="hBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Setup -->
+    <div id="pSetup" class="panel">
+      <div class="setup-section"><h4>Registered Leaders</h4><div id="uList"></div></div>
+      <div class="setup-section">
+        <h4>Change Admin Password</h4>
+        <div class="fg"><label>Current Password</label><input type="password" id="pwCur" placeholder="Current password"/></div>
+        <div class="fg"><label>New Password</label><input type="password" id="pwNew" placeholder="New password"/></div>
+        <div class="fg"><label>Confirm New Password</label><input type="password" id="pwCon" placeholder="Confirm password"/></div>
+        <button class="btn-red" onclick="changePwd()">Update Password</button>
+      </div>
+      <div class="setup-section" style="border:1.5px solid rgba(22,163,74,.25)">
+        <h4 style="color:var(--green)">Add a New Unit</h4>
+        <p style="font-size:12px;color:var(--grey-4);margin-bottom:12px">Creates the unit and its leader account in one step.</p>
+        <div class="fg"><label>Unit Type</label>
+          <select id="newUnitType">
+            <option value="Hall">Hall</option>
+            <option value="Hostel">Hostel</option>
+            <option value="Department">Department</option>
+          </select>
+        </div>
+        <div class="fg"><label>Unit Name</label><input type="text" id="newUnitName" placeholder="e.g. Unity Hall"/></div>
+        <div class="fg"><label>Leader Full Name</label><input type="text" id="newUnitLeaderName" placeholder="Leader's name"/></div>
+        <div class="fg"><label>Leader Username</label><input type="text" id="newUnitLeaderUser" placeholder="Username"/></div>
+        <div class="fg"><label>Leader Password</label><input type="password" id="newUnitLeaderPass" placeholder="Password"/></div>
+        <button class="btn-red" style="background:var(--green)" onclick="addUnit()">+ Create Unit</button>
+      </div>
+      <div class="setup-section" style="border:1.5px solid rgba(200,16,46,.25)">
+        <h4 style="color:var(--red)">Remove a Leader / Unit</h4>
+        <p style="font-size:12px;color:var(--grey-4);margin-bottom:12px">Their attendance records are kept.</p>
+        <div class="fg"><label>Select Leader</label><select id="delSel"></select></div>
+        <button class="btn-red" style="background:var(--grey-4)" onclick="removeLeader()">Remove</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function show(id){
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+</script>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc, collection, getDocs,
+           addDoc, deleteDoc, query, orderBy, where, updateDoc }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey:"AIzaSyD8NFqxOjVNHFCgB2uzr7gyr28ho6eJYiU",
+    authDomain:"ccf-database-9966e.firebaseapp.com",
+    projectId:"ccf-database-9966e",
+    storageBucket:"ccf-database-9966e.firebasestorage.app",
+    messagingSenderId:"834572794978",
+    appId:"1:834572794978:web:d31ec4c9229801b473a53b"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+
+  let CU = null, ATT = {}, MEMBERS_MAP = {}, NOTES = {}, noteTarget = null;
+
+  // ── UTILS ──
+  window.show = function(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); };
+  function v(id){ return document.getElementById(id)?.value?.trim()||''; }
+  function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function fmtFull(d){ return d.toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'}); }
+  function fmtShort(s){ const d=new Date(s); return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); }
+  function rel(s){ const d=(Date.now()-new Date(s))/1000; return d<60?'just now':d<3600?Math.floor(d/60)+'m ago':d<86400?Math.floor(d/3600)+'h ago':Math.floor(d/86400)+'d ago'; }
+  function svcLbl(s){ return {s1:'Sunday Service',mw:'Midweek',pm:'Prayer Mtg',sp:'Special'}[s]||s; }
+  function set(id,h){ const el=document.getElementById(id); if(!el)return; el[typeof h==='string'&&h.includes('<')?'innerHTML':'textContent']=h; }
+  function normName(s){ return String(s||'').trim().toLowerCase().replace(/\s+/g,' '); }
+  let tTimer;
+  function toast(msg,type=''){ const el=document.getElementById('toast'); el.textContent=msg; el.className='show '+type; clearTimeout(tTimer); tTimer=setTimeout(()=>el.className='',3000); }
+  window.toast=toast;
+  function setLoading(on){ document.getElementById('loadingOverlay').style.display=on?'flex':'none'; }
+  function btnLoading(id,on,label=''){ const btn=document.getElementById(id); if(!btn)return; btn.disabled=on; btn.textContent=on?'Please wait…':label; }
+  function persist(){ localStorage.setItem('ccf_ses',JSON.stringify(CU)); }
+  function restore(){
+    try{
+      const s=localStorage.getItem('ccf_ses');
+      if(!s){setLoading(false);show('sLogin');return;}
+      CU=JSON.parse(s);
+      if(CU.role==='admin') showAdmin();
+      else if(CU.role==='member') showMember();
+      else showLeader();
+    }catch{ setLoading(false); show('sLogin'); }
+  }
+
+  // ── AUTH ──
+  window.doLogin = async function(){
+    const u=v('lUser'), p=v('lPass');
+    if(!u||!p){toast('Enter username and password','err');return;}
+    btnLoading('loginBtn',true,'Sign In');
+    try{
+      const adminDoc=await getDoc(doc(db,'config','admin'));
+      if(adminDoc.exists()){
+        const a=adminDoc.data();
+        if(u===a.username&&p===a.password){
+          CU={username:a.username,name:a.name||'CCF Admin',role:'admin'};
+          persist(); showAdmin(); return;
+        }
+      }
+      const snap=await getDocs(query(collection(db,'users'),where('username','==',u)));
+      if(snap.empty){toast('Incorrect credentials','err');return;}
+      const ud=snap.docs[0].data();
+      if(ud.password!==p){toast('Incorrect credentials','err');return;}
+      CU={...ud,id:snap.docs[0].id};
+      persist();
+      if(CU.role==='member') showMember(); else showLeader();
+    }catch(e){toast('Connection error','err');console.error(e);}
+    finally{ btnLoading('loginBtn',false,'Sign In'); }
+  };
+
+  window.doRegister = async function(){
+    const unitType=document.getElementById('rUnitType').value;
+    const unit=v('rUnit'), name=v('rName'), user=v('rUser'), pass=v('rPass');
+    if(!unit||!name||!user||!pass){toast('Please fill all fields','err');return;}
+    btnLoading('registerBtn',true,'Create Account');
+    try{
+      const adminDoc=await getDoc(doc(db,'config','admin'));
+      if(adminDoc.exists()&&adminDoc.data().username===user){toast('Username already taken','err');return;}
+      const snap=await getDocs(query(collection(db,'users'),where('username','==',user)));
+      if(!snap.empty){toast('Username already taken','err');return;}
+      await addDoc(collection(db,'users'),{username:user,password:pass,name,unit,unitType,role:'leader'});
+      toast('Account created — sign in!','ok');
+      ['rUnit','rName','rUser','rPass'].forEach(id=>document.getElementById(id).value='');
+      show('sLogin');
+    }catch(e){toast('Registration failed','err');console.error(e);}
+    finally{ btnLoading('registerBtn',false,'Create Account'); }
+  };
+
+  window.doLogout = function(){
+    CU=null; NOTES={};
+    stopLocationWatch();
+    localStorage.removeItem('ccf_ses');
+    show('sLogin');
+    document.getElementById('lUser').value='';
+    document.getElementById('lPass').value='';
+  };
+
+  // ── LEADER ──
+  async function showLeader(){
+    show('sLeader');
+    set('lNavUnit',CU.unit); set('lNavName',CU.name);
+    set('banUnit',CU.unit); set('banDate',fmtFull(new Date()));
+    setLoading(false); ATT={}; MEMBERS_MAP={};
+    // Set today's date on report fields
+    const today=new Date().toISOString().split('T')[0];
+    document.getElementById('dbDate').value=today;
+    document.getElementById('dmDate').value=today;
+    try{
+      const snap=await getDocs(query(collection(db,'members'),where('unit','==',CU.unit)));
+      snap.forEach(d=>{ const md=d.data(); ATT[md.name]=false; MEMBERS_MAP[md.name]={...md,docId:d.id}; });
+      const notesSnap=await getDocs(query(collection(db,'notes'),where('unit','==',CU.unit)));
+      NOTES={};
+      notesSnap.forEach(d=>{ const nd=d.data(); NOTES[nd.member]={text:nd.text,docId:d.id}; });
+    }catch(e){console.error(e);}
+    counts(); renderMembers(); loadLeaderLocations();
+  }
+
+  window.renderMembers = function(){
+    const q=document.getElementById('mSearch').value.toLowerCase();
+    const names=Object.keys(ATT).filter(n=>n.toLowerCase().includes(q));
+    set('mCount',names.length+' members');
+    const el=document.getElementById('mList');
+    if(!names.length){el.innerHTML='<div class="empty">No members yet — tap + Add Member below.</div>';return;}
+    el.innerHTML=names.map(n=>{
+      const on=ATT[n];
+      const hasNote=!!(NOTES[n]&&NOTES[n].text);
+      const ini=n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+      const safe=encodeURIComponent(n);
+      return `<div class="mrow">
+        <div class="avatar ${on?'on':''}">${ini}</div>
+        <div class="minfo">
+          <div class="mname">${esc(n)}</div>
+          <div class="mstatus">${on?'✅ Present':'—'}${hasNote?' · 📝':''}</div>
+        </div>
+        <button class="info-btn" onclick="openProfileModal('${safe}')">👤</button>
+        <button class="note-btn ${hasNote?'has-note':''}" onclick="openNoteModal('${safe}')">📝</button>
+        <button class="del-btn" onclick="removeMember('${safe}')">✕</button>
+        <button class="tog ${on?'on':''}" onclick="tog('${safe}')"></button>
+      </div>`;
+    }).join('');
+  };
+
+  window.tog = function(enc){ const n=decodeURIComponent(enc); ATT[n]=!ATT[n]; counts(); renderMembers(); };
+
+  function counts(){
+    const vals=Object.values(ATT);
+    const p=vals.filter(Boolean).length, t=vals.length;
+    set('sP',p); set('sA',t-p); set('sT',t);
+    set('sPct',t?Math.round(p/t*100)+'%':'0%');
+  }
+
+  // ── ADD MEMBER MODAL ──
+  window.openAddMemberModal = function(){
+    ['mNewName','mNewProg','mNewHall','mNewPhone','mNewUser','mNewPass'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('addMemberModal').style.display='flex';
+    setTimeout(()=>document.getElementById('mNewName').focus(),150);
+  };
+  window.cancelAddMember = function(){ document.getElementById('addMemberModal').style.display='none'; };
+
+  window.confirmAddMember = async function(){
+    const name  = v('mNewName');
+    const prog  = v('mNewProg');
+    const hall  = v('mNewHall');
+    const phone = v('mNewPhone');
+    const user  = v('mNewUser');
+    const pass  = v('mNewPass');
+    if(!name){toast('Full name is required','err');return;}
+    if(ATT.hasOwnProperty(name)){toast('Member already in list','err');return;}
+    try{
+      const memberDoc={name, unit:CU.unit, programme:prog, hall:hall, phone:phone, addedAt:new Date().toISOString()};
+      const ref=await addDoc(collection(db,'members'),memberDoc);
+      ATT[name]=false;
+      MEMBERS_MAP[name]={...memberDoc,docId:ref.id};
+      if(user&&pass){
+        const adminDoc=await getDoc(doc(db,'config','admin'));
+        if(adminDoc.exists()&&adminDoc.data().username===user){
+          toast('Username taken — member added without login','err');
+        } else {
+          const snap=await getDocs(query(collection(db,'users'),where('username','==',user)));
+          if(!snap.empty){ toast('Username taken — member added without login','err'); }
+          else {
+            await addDoc(collection(db,'users'),{username:user,password:pass,name,unit:CU.unit,unitType:CU.unitType||'Hall',role:'member',programme:prog,hall:hall,phone:phone});
+            toast(name+' added with login ✓','ok');
+          }
+        }
+      } else { toast(name+' added','ok'); }
+      cancelAddMember(); counts(); renderMembers();
+    }catch(e){toast('Failed to add member','err');console.error(e);}
+  };
+
+  // ── MEMBER PROFILE MODAL ──
+  window.openProfileModal = function(enc){
+    const name=decodeURIComponent(enc);
+    const m=MEMBERS_MAP[name]||{};
+    document.getElementById('profileModalName').textContent=name;
+    document.getElementById('profileModalUnit').textContent=CU?CU.unit:'';
+    document.getElementById('profileModalBody').innerHTML=`
+      <div class="profile-detail"><span class="profile-key">Programme</span><span class="profile-val">${esc(m.programme||'—')}</span></div>
+      <div class="profile-detail"><span class="profile-key">Hall / Hostel</span><span class="profile-val">${esc(m.hall||'—')}</span></div>
+      <div class="profile-detail"><span class="profile-key">Phone</span><span class="profile-val">${esc(m.phone||'—')}</span></div>
+      <div class="profile-detail"><span class="profile-key">Unit</span><span class="profile-val">${esc(m.unit||'—')}</span></div>
+    `;
+    document.getElementById('profileModal').style.display='flex';
+  };
+  window.closeProfileModal = function(){ document.getElementById('profileModal').style.display='none'; };
+
+  // Admin profile modal (reads from members collection)
+  window.openAdminProfileModal = async function(memberId){
+    try{
+      const snap=await getDoc(doc(db,'members',memberId));
+      const m=snap.exists()?snap.data():{};
+      document.getElementById('profileModalName').textContent=m.name||'—';
+      document.getElementById('profileModalUnit').textContent=m.unit||'';
+      document.getElementById('profileModalBody').innerHTML=`
+        <div class="profile-detail"><span class="profile-key">Programme</span><span class="profile-val">${esc(m.programme||'—')}</span></div>
+        <div class="profile-detail"><span class="profile-key">Hall / Hostel</span><span class="profile-val">${esc(m.hall||'—')}</span></div>
+        <div class="profile-detail"><span class="profile-key">Phone</span><span class="profile-val">${esc(m.phone||'—')}</span></div>
+        <div class="profile-detail"><span class="profile-key">Unit</span><span class="profile-val">${esc(m.unit||'—')}</span></div>
+        <div class="profile-detail"><span class="profile-key">Added</span><span class="profile-val">${m.addedAt?fmtShort(m.addedAt):'—'}</span></div>
+      `;
+      document.getElementById('profileModal').style.display='flex';
+    }catch(e){toast('Failed to load profile','err');console.error(e);}
+  };
+
+  // ── REMOVE MEMBER ──
+  window.removeMember = async function(enc){
+    const n=decodeURIComponent(enc);
+    if(!confirm('Remove '+n+' from your unit?')) return;
+    try{
+      const snap=await getDocs(query(collection(db,'members'),where('name','==',n),where('unit','==',CU.unit)));
+      for(const d of snap.docs) await deleteDoc(doc(db,'members',d.id));
+      const uSnap=await getDocs(query(collection(db,'users'),where('name','==',n),where('unit','==',CU.unit),where('role','==','member')));
+      for(const d of uSnap.docs){
+        const ud=d.data();
+        await deleteDoc(doc(db,'users',d.id));
+        if(ud.username){ try{ await deleteDoc(doc(db,'locations',ud.username)); }catch(_){} }
+      }
+      delete ATT[n]; delete MEMBERS_MAP[n]; counts(); renderMembers(); loadLeaderLocations(); toast(n+' removed');
+    }catch(e){toast('Failed to remove member','err');console.error(e);}
+  };
+
+  // ── SUBMIT ATTENDANCE ──
+  window.submitAtt = async function(){
+    const svc=document.getElementById('svcSel').value;
+    const pr=Object.entries(ATT).filter(([,val])=>val).map(([k])=>k);
+    const t=Object.keys(ATT).length;
+    const pct=t?Math.round(pr.length/t*100):0;
+    try{
+      await addDoc(collection(db,'records'),{
+        unit:CU.unit, service:svc, date:new Date().toISOString(),
+        present:pr.length, absent:t-pr.length, total:t, pct,
+        presentNames:pr, by:CU.username, type:'attendance'
+      });
+      set('oMsg',`${pr.length} of ${t} marked present (${pct}%) for ${svcLbl(svc)}.`);
+      document.getElementById('oSubmit').style.display='flex';
+    }catch(e){toast('Submit failed','err');console.error(e);}
+  };
+  window.closeSubmit = function(){ document.getElementById('oSubmit').style.display='none'; showLeader(); };
+
+  // ── DAWN BROADCAST SUBMIT ──
+  window.submitDawnBroadcast = async function(){
+    const date=v('dbDate'), count=v('dbCount'), notes=v('dbNotes');
+    if(!date||!count){toast('Date and participant count required','err');return;}
+    try{
+      await addDoc(collection(db,'leaderReports'),{
+        unit:CU.unit, by:CU.username, leaderName:CU.name,
+        type:'dawn', date:date, count:parseInt(count)||0,
+        notes, submittedAt:new Date().toISOString()
+      });
+      toast('Dawn broadcast report submitted ✓','ok');
+      document.getElementById('dbCount').value='';
+      document.getElementById('dbNotes').value='';
+    }catch(e){toast('Submit failed','err');console.error(e);}
+  };
+
+  // ── DEPT MEETING SUBMIT ──
+  window.submitDeptMeeting = async function(){
+    const date=v('dmDate'), agenda=v('dmAgenda'), count=v('dmCount'), notes=v('dmNotes');
+    if(!date||!agenda){toast('Date and agenda required','err');return;}
+    try{
+      await addDoc(collection(db,'leaderReports'),{
+        unit:CU.unit, by:CU.username, leaderName:CU.name,
+        type:'dept', date:date, agenda, count:parseInt(count)||0,
+        notes, submittedAt:new Date().toISOString()
+      });
+      toast('Meeting report submitted ✓','ok');
+      document.getElementById('dmAgenda').value='';
+      document.getElementById('dmCount').value='';
+      document.getElementById('dmNotes').value='';
+    }catch(e){toast('Submit failed','err');console.error(e);}
+  };
+
+  // ── NOTES ──
+  window.openNoteModal = function(enc){
+    const name=decodeURIComponent(enc); noteTarget=name;
+    document.getElementById('noteModalTitle').textContent='Note — '+name;
+    document.getElementById('noteText').value=(NOTES[name]&&NOTES[name].text)||'';
+    document.getElementById('noteModal').style.display='flex';
+    setTimeout(()=>document.getElementById('noteText').focus(),150);
+  };
+  window.closeNoteModal = function(){ document.getElementById('noteModal').style.display='none'; noteTarget=null; };
+  window.saveNote = async function(){
+    if(!noteTarget) return;
+    const text=document.getElementById('noteText').value.trim();
+    try{
+      if(NOTES[noteTarget]&&NOTES[noteTarget].docId){
+        await updateDoc(doc(db,'notes',NOTES[noteTarget].docId),{text,updatedAt:new Date().toISOString()});
+        NOTES[noteTarget].text=text;
+      } else {
+        const ref=await addDoc(collection(db,'notes'),{member:noteTarget,unit:CU.unit,text,createdAt:new Date().toISOString(),by:CU.username});
+        NOTES[noteTarget]={text,docId:ref.id};
+      }
+      closeNoteModal(); renderMembers(); toast('Note saved','ok');
+    }catch(e){toast('Failed to save note','err');console.error(e);}
+  };
+
+  // ── LOCATION ──
+  let locWatchId=null, locSharing=false;
+  window.toggleMemberLocation = async function(){
+    if(!CU) return;
+    if(!locSharing){
+      if(!navigator.geolocation){toast('Geolocation not supported','err');return;}
+      navigator.geolocation.getCurrentPosition(
+        async pos=>{
+          locSharing=true; updateLocUI(true); await pushLocation(pos);
+          locWatchId=navigator.geolocation.watchPosition(async p=>{await pushLocation(p);},err=>{console.warn(err);},{enableHighAccuracy:true,maximumAge:30000,timeout:20000});
+          toast('Location sharing on','ok');
+        },
+        err=>{ toast(err.code===1?'Location permission denied':'Could not get location','err'); },
+        {enableHighAccuracy:true,timeout:15000}
+      );
+    } else {
+      stopLocationWatch();
+      try{ await setDoc(doc(db,'locations',CU.username),{sharing:false,name:CU.name,unit:CU.unit,ts:new Date().toISOString()},{merge:true}); }catch(e){console.error(e);}
+      toast('Location sharing off');
+    }
+  };
+  async function pushLocation(pos){
+    if(!CU) return;
+    try{ await setDoc(doc(db,'locations',CU.username),{sharing:true,name:CU.name,unit:CU.unit,lat:pos.coords.latitude,lng:pos.coords.longitude,accuracy:pos.coords.accuracy,ts:new Date().toISOString()},{merge:true}); }
+    catch(e){console.error(e);}
+  }
+  function stopLocationWatch(){
+    if(locWatchId!==null){navigator.geolocation.clearWatch(locWatchId);locWatchId=null;}
+    locSharing=false; updateLocUI(false);
+  }
+  function updateLocUI(on){
+    const tog=document.getElementById('locBigTog');
+    const icon=document.getElementById('locToggleIcon');
+    const sub=document.getElementById('locToggleSub');
+    if(tog)  tog.classList.toggle('on',on);
+    if(icon) icon.classList.toggle('active',on);
+    if(sub)  sub.textContent=on?'On — your leader can see your location':'Off — your leader cannot see you';
+  }
+  window.loadLeaderLocations = async function(){
+    const el=document.getElementById('leaderLocList'); if(!el) return;
+    el.innerHTML='<div class="empty" style="padding:14px 0">Loading…</div>';
+    try{
+      const snap=await getDocs(query(collection(db,'locations'),where('unit','==',CU.unit)));
+      if(snap.empty){el.innerHTML='<div class="empty" style="padding:14px 0">No members sharing location yet.</div>';return;}
+      const locs=snap.docs.map(d=>d.data()).filter(d=>d.name);
+      if(!locs.length){el.innerHTML='<div class="empty" style="padding:14px 0">No members sharing location yet.</div>';return;}
+      locs.sort((a,b)=>(b.sharing?1:0)-(a.sharing?1:0)||a.name.localeCompare(b.name));
+      el.innerHTML=locs.map(loc=>{
+        const isLive=!!loc.sharing;
+        const mapsUrl=(loc.lat&&loc.lng)?`https://www.google.com/maps?q=${loc.lat},${loc.lng}`:'';
+        const accStr=loc.accuracy?` · ±${Math.round(loc.accuracy)}m`:'';
+        return `<div class="loc-row">
+          <div class="loc-dot ${isLive?'live':''}"></div>
+          <div class="loc-info"><div class="loc-name">${esc(loc.name)}</div><div class="loc-meta">${isLive?'Sharing · '+rel(loc.ts)+accStr:'Not sharing'}</div></div>
+          ${(mapsUrl&&isLive)?`<button class="loc-map-btn" onclick="window.open('${mapsUrl}','_blank')">Open Map</button>`:''}
+        </div>`;
+      }).join('');
+    }catch(e){el.innerHTML='<div class="empty" style="padding:14px 0">Failed to load.</div>';console.error(e);}
+  };
+  window.addEventListener('pagehide',()=>{ if(locWatchId!==null) stopLocationWatch(); });
+
+  // ── MEMBER SCREEN ──
+  async function showMember(){
+    show('sMember');
+    set('memNavUnit',CU.unit); set('memNavName',CU.name);
+    set('memHeroName','Hi, '+CU.name.split(' ')[0]+'!');
+    set('memHeroUnit',CU.unit); set('memUnitBadge',CU.unit);
+    setLoading(false); updateLocUI(false);
+  }
+
+  // ── SEND COMPLAINT ──
+  window.sendComplaint = async function(){
+    const text=document.getElementById('complaintText').value.trim();
+    if(!text){toast('Please write your complaint first','err');return;}
+    btnLoading('complaintBtn',true,'Send to Admin');
+    try{
+      await addDoc(collection(db,'complaints'),{
+        from:CU.name, unit:CU.unit, username:CU.username||'',
+        text, submittedAt:new Date().toISOString(), read:false
+      });
+      document.getElementById('complaintText').value='';
+      toast('Complaint sent to admin ✓','ok');
+    }catch(e){toast('Failed to send','err');console.error(e);}
+    finally{ btnLoading('complaintBtn',false,'Send to Admin'); }
+  };
+
+  // ── ADMIN ──
+  async function showAdmin(){
+    show('sAdmin'); set('aNavName',CU.name); setLoading(false);
+    await renderOverview(); renderHistory('all'); renderSetup();
+    // Populate unit filters
+    try{
+      const snap=await getDocs(collection(db,'users'));
+      const units=[...new Set(snap.docs.map(d=>d.data().unit).filter(Boolean))].sort();
+      ['repUnit','memberUnitFilter'].forEach(selId=>{
+        const sel=document.getElementById(selId);
+        if(!sel) return;
+        const def=selId==='repUnit'?'All Units':'All Units';
+        sel.innerHTML=`<option value="all">${def}</option>`+units.map(u=>`<option value="${esc(u)}">${esc(u)}</option>`).join('');
+      });
+    }catch(e){console.error(e);}
+  }
+
+  window.renderOverview = async function(){
+    const svc=document.getElementById('aSvc')?document.getElementById('aSvc').value:'s1';
+    try{
+      const [usersSnap,recordsSnap]=await Promise.all([
+        getDocs(collection(db,'users')),
+        getDocs(query(collection(db,'records'),orderBy('date','desc')))
+      ]);
+      const users=usersSnap.docs.map(d=>d.data()).filter(u=>u.role==='leader');
+      const records=recordsSnap.docs.map(d=>d.data()).filter(r=>r.type==='attendance'||!r.type);
+      const units=[...new Set(users.map(u=>u.unit))];
+      const latest={};
+      records.filter(r=>r.service===svc).slice().reverse().forEach(r=>{ latest[r.unit]=r; });
+      const recs=Object.values(latest);
+      const tp=recs.reduce((a,r)=>a+r.present,0), tt=recs.reduce((a,r)=>a+r.total,0);
+      const avg=recs.length?Math.round(recs.reduce((a,r)=>a+r.pct,0)/recs.length):0;
+      set('oSum',`
+        <div class="sum-mini"><div class="sum-val">${recs.length}</div><div class="sum-lbl">Reported</div></div>
+        <div class="sum-mini"><div class="sum-val">${units.length-recs.length}</div><div class="sum-lbl">Pending</div></div>
+        <div class="sum-mini"><div class="sum-val">${tp}</div><div class="sum-lbl">Present</div></div>
+        <div class="sum-mini"><div class="sum-val">${tt-tp}</div><div class="sum-lbl">Absent</div></div>
+        <div class="sum-mini"><div class="sum-val">${tt}</div><div class="sum-lbl">Total</div></div>
+        <div class="sum-mini"><div class="sum-val">${avg}%</div><div class="sum-lbl">Avg</div></div>
+      `);
+      const userMap={};
+      usersSnap.docs.forEach(d=>{ const ud=d.data(); if(ud.unit) userMap[ud.unit]=ud.unitType||'Hall'; });
+      const typeOrder=['Hall','Hostel','Department'];
+      const typeLabels={Hall:'🏛 Halls',Hostel:'🏠 Hostels',Department:'📚 Departments'};
+      let html='';
+      typeOrder.forEach(type=>{
+        const typeUnits=units.filter(u=>(userMap[u]||'Hall')===type);
+        if(!typeUnits.length) return;
+        html+=`<div class="unit-type-hd">${typeLabels[type]}</div>`;
+        typeUnits.forEach(u=>{
+          const r=latest[u];
+          if(!r){html+=`<div class="scard"><div class="scard-hd"><div class="scard-title">${esc(u)}</div><span class="badge p">Pending</span></div><div style="font-size:12px;color:var(--grey-3)">No attendance submitted yet</div></div>`;return;}
+          const bc=r.pct>=75?'g':r.pct>=50?'a':'r';
+          const names=(r.presentNames||[]).map(n=>`<span class="name-tag">${esc(n)}</span>`).join('');
+          html+=`<div class="scard">
+            <div class="scard-hd"><div class="scard-title">${esc(u)}</div><span class="badge ${bc}">${r.pct}%</span></div>
+            <div class="plabels"><span>${r.present} present</span><span>${r.total} total</span></div>
+            <div class="pbar"><div class="pfill ${bc}" style="width:${r.pct}%"></div></div>
+            ${names?`<div class="name-tags">${names}</div>`:''}
+            <div style="font-size:11px;color:var(--grey-3);margin-top:6px">Submitted ${rel(r.date)} · by ${esc(r.by)}</div>
+          </div>`;
+        });
+      });
+      set('oCards',html||'<div class="empty">No units registered yet.</div>');
+    }catch(e){console.error(e);toast('Failed to load overview','err');}
+  };
+
+  window.renderUnitTab = async function(type){
+    const el=document.getElementById('hCards'+type); if(!el) return;
+    el.innerHTML='<div class="empty">Loading…</div>';
+    try{
+      const [usersSnap,recordsSnap,membersSnap]=await Promise.all([
+        getDocs(collection(db,'users')),
+        getDocs(query(collection(db,'records'),orderBy('date','desc'))),
+        getDocs(collection(db,'members'))
+      ]);
+      const users=usersSnap.docs.map(d=>d.data()).filter(u=>u.role==='leader');
+      const records=recordsSnap.docs.map(d=>d.data()).filter(r=>r.type==='attendance'||!r.type);
+      const members=membersSnap.docs.map(d=>d.data());
+      const typeUnits=[...new Set(users.filter(u=>(u.unitType||'Hall')===type).map(u=>u.unit))].sort();
+      if(!typeUnits.length){el.innerHTML=`<div class="empty">No ${type.toLowerCase()}s registered yet.</div>`;return;}
+      el.innerHTML=typeUnits.map(u=>{
+        const recs=records.filter(r=>r.unit===u).slice(0,5);
+        const mCnt=members.filter(m=>m.unit===u).length;
+        return `<div class="scard">
+          <div class="scard-hd"><div class="scard-title">${esc(u)}</div><span style="font-size:11px;color:var(--grey-3)">${mCnt} members</span></div>
+          ${recs.length?recs.map(r=>{
+            const names=(r.presentNames||[]).map(n=>`<span class="name-tag">${esc(n)}</span>`).join('');
+            return `<div style="margin-bottom:10px">
+              <div class="plabels"><span>${svcLbl(r.service)} · ${fmtShort(r.date)}</span><span>${r.present}/${r.total} · ${r.pct}%</span></div>
+              <div class="pbar"><div class="pfill ${r.pct>=75?'g':r.pct>=50?'a':'r'}" style="width:${r.pct}%"></div></div>
+              ${names?`<div class="name-tags" style="margin-top:6px">${names}</div>`:''}
+            </div>`;
+          }).join(''):'<div style="font-size:12px;color:var(--grey-3)">No records yet</div>'}
+        </div>`;
+      }).join('');
+    }catch(e){el.innerHTML='<div class="empty">Failed to load.</div>';console.error(e);}
+  };
+
+  // ── REPORTS (attendance + dawn + dept) ──
+  window.renderReports = async function(){
+    const unitFilter=document.getElementById('repUnit').value;
+    const typeFilter=document.getElementById('repType').value;
+    const out=document.getElementById('repOut');
+    out.innerHTML='<div class="empty">Loading…</div>';
+    try{
+      const [attSnap,lrSnap]=await Promise.all([
+        getDocs(query(collection(db,'records'),orderBy('date','desc'))),
+        getDocs(query(collection(db,'leaderReports'),orderBy('submittedAt','desc')))
+      ]);
+      let attRecords=attSnap.docs.map(d=>d.data()).filter(r=>r.type==='attendance'||!r.type);
+      let lrRecords=lrSnap.docs.map(d=>d.data());
+      if(unitFilter!=='all'){
+        attRecords=attRecords.filter(r=>r.unit===unitFilter);
+        lrRecords=lrRecords.filter(r=>r.unit===unitFilter);
+      }
+      let html='';
+
+      // Attendance section
+      if(typeFilter==='all'||typeFilter==='attendance'){
+        html+=`<div class="unit-type-hd">📋 Attendance Records</div>`;
+        if(!attRecords.length){ html+='<div class="empty">No attendance records.</div>'; }
+        else {
+          // Group by unit
+          const units=[...new Set(attRecords.map(r=>r.unit))].sort();
+          units.forEach(u=>{
+            const ur=attRecords.filter(r=>r.unit===u);
+            const uAvg=Math.round(ur.reduce((a,r)=>a+r.pct,0)/ur.length);
+            html+=`<div class="scard" style="margin-bottom:12px">
+              <div class="scard-hd"><div class="scard-title">${esc(u)}</div><span class="badge ${uAvg>=75?'g':uAvg>=50?'a':'r'}">${uAvg}% avg</span></div>`;
+            ur.slice(0,10).forEach(r=>{
+              const names=(r.presentNames||[]).map(n=>`<span class="name-tag">${esc(n)}</span>`).join('');
+              html+=`<div style="padding:8px 0;border-bottom:1px solid var(--grey-1)">
+                <div class="plabels"><span>${svcLbl(r.service)} · ${fmtShort(r.date)}</span><span>${r.present}/${r.total} · ${r.pct}%</span></div>
+                <div class="pbar" style="margin-top:4px"><div class="pfill ${r.pct>=75?'g':r.pct>=50?'a':'r'}" style="width:${r.pct}%"></div></div>
+                ${names?`<div class="name-tags" style="margin-top:6px">${names}</div>`:''}
+              </div>`;
+            });
+            html+=`</div>`;
+          });
+        }
+      }
+
+      // Dawn broadcast section
+      if(typeFilter==='all'||typeFilter==='dawn'){
+        const dawn=lrRecords.filter(r=>r.type==='dawn');
+        html+=`<div class="unit-type-hd">📢 Dawn Broadcast Reports</div>`;
+        if(!dawn.length){ html+='<div class="empty">No dawn broadcast reports.</div>'; }
+        else {
+          const units=[...new Set(dawn.map(r=>r.unit))].sort();
+          units.forEach(u=>{
+            const ur=dawn.filter(r=>r.unit===u);
+            html+=`<div class="scard" style="margin-bottom:12px"><div class="scard-hd"><div class="scard-title">${esc(u)}</div><span class="badge b">${ur.length} reports</span></div>`;
+            ur.forEach(r=>{
+              html+=`<div class="rep-row"><span class="rep-key">${r.date}</span><span class="rep-val">${r.count} participants${r.notes?' · '+esc(r.notes.slice(0,40)):''}</span></div>`;
+            });
+            html+=`</div>`;
+          });
+        }
+      }
+
+      // Dept meeting section
+      if(typeFilter==='all'||typeFilter==='dept'){
+        const dept=lrRecords.filter(r=>r.type==='dept');
+        html+=`<div class="unit-type-hd">🏛 Departmental Meeting Reports</div>`;
+        if(!dept.length){ html+='<div class="empty">No meeting reports.</div>'; }
+        else {
+          const units=[...new Set(dept.map(r=>r.unit))].sort();
+          units.forEach(u=>{
+            const ur=dept.filter(r=>r.unit===u);
+            html+=`<div class="scard" style="margin-bottom:12px"><div class="scard-hd"><div class="scard-title">${esc(u)}</div><span class="badge b">${ur.length} meetings</span></div>`;
+            ur.forEach(r=>{
+              html+=`<div style="padding:8px 0;border-bottom:1px solid var(--grey-1)">
+                <div style="font-size:12px;font-weight:700;color:var(--grey-5)">${r.date} · ${esc(r.agenda||'')}</div>
+                <div style="font-size:11px;color:var(--grey-3);margin-top:3px">${r.count} present${r.notes?' · '+esc(r.notes.slice(0,60)):''}</div>
+              </div>`;
+            });
+            html+=`</div>`;
+          });
+        }
+      }
+
+      out.innerHTML=html||'<div class="empty">No records found.</div>';
+    }catch(e){out.innerHTML='<div class="empty">Failed to load reports.</div>';console.error(e);}
+  };
+
+  // ── ADMIN MEMBERS TAB ──
+  window.renderAdminMembers = async function(){
+    const unitFilter=document.getElementById('memberUnitFilter').value;
+    const el=document.getElementById('adminMemberList');
+    el.innerHTML='<div class="empty">Loading…</div>';
+    try{
+      const snap=await getDocs(collection(db,'members'));
+      let members=snap.docs.map(d=>({...d.data(),docId:d.id}));
+      if(unitFilter!=='all') members=members.filter(m=>m.unit===unitFilter);
+      members.sort((a,b)=>a.name.localeCompare(b.name));
+      if(!members.length){el.innerHTML='<div class="empty">No members found.</div>';return;}
+      // Group by unit
+      const units=[...new Set(members.map(m=>m.unit))].sort();
+      el.innerHTML=units.map(u=>{
+        const um=members.filter(m=>m.unit===u);
+        return `<div class="scard" style="margin-bottom:12px">
+          <div class="scard-hd"><div class="scard-title">${esc(u)}</div><span style="font-size:11px;color:var(--grey-3)">${um.length} members</span></div>
+          ${um.map(m=>`<div class="urow">
+            <div class="uinfo">
+              <div class="uname">${esc(m.name)}</div>
+              <div class="umeta">${esc(m.programme||'—')} · ${esc(m.hall||'—')} · ${esc(m.phone||'—')}</div>
+            </div>
+            <button class="info-btn" onclick="openAdminProfileModal('${m.docId}')">👤</button>
+          </div>`).join('')}
+        </div>`;
+      }).join('');
+    }catch(e){el.innerHTML='<div class="empty">Failed to load.</div>';console.error(e);}
+  };
+
+  // ── COMPLAINTS ──
+  window.renderComplaints = async function(){
+    const el=document.getElementById('complaintList');
+    el.innerHTML='<div class="empty">Loading…</div>';
+    try{
+      const snap=await getDocs(query(collection(db,'complaints'),orderBy('submittedAt','desc')));
+      const complaints=snap.docs.map(d=>d.data());
+      set('complaintCount',complaints.length+' total');
+      if(!complaints.length){el.innerHTML='<div class="empty">No complaints yet.</div>';return;}
+      el.innerHTML=`<div class="scard">`+complaints.map(c=>`
+        <div class="complaint-row">
+          <div class="complaint-meta">${esc(c.from)} · ${esc(c.unit)} · ${rel(c.submittedAt)}</div>
+          <div class="complaint-text">${esc(c.text)}</div>
+        </div>`).join('')+`</div>`;
+    }catch(e){el.innerHTML='<div class="empty">Failed to load.</div>';console.error(e);}
+  };
+
+  let hFilter='all';
+  window.renderHistory = async function(f){
+    hFilter=f||hFilter;
+    try{
+      const [usersSnap,recordsSnap]=await Promise.all([
+        getDocs(collection(db,'users')),
+        getDocs(query(collection(db,'records'),orderBy('date','desc')))
+      ]);
+      const users=usersSnap.docs.map(d=>d.data()).filter(u=>u.role==='leader');
+      const records=recordsSnap.docs.map(d=>d.data()).filter(r=>r.type==='attendance'||!r.type);
+      const typeOrder=['Hall','Hostel','Department'];
+      const typeIcons={Hall:'🏛',Hostel:'🏠',Department:'📚'};
+      let chips=`<button class="chip ${hFilter==='all'?'on':''}" onclick="renderHistory('all')">All Units</button>`;
+      typeOrder.forEach(type=>{
+        [...new Set(users.filter(u=>(u.unitType||'Hall')===type).map(u=>u.unit))].sort().forEach(u=>{
+          const safe=encodeURIComponent(u);
+          chips+=`<button class="chip ${hFilter===u?'on':''}" onclick="renderHistory(decodeURIComponent('${safe}'))">${typeIcons[type]} ${esc(u)}</button>`;
+        });
+      });
+      set('hChips',chips);
+      const recs=hFilter==='all'?records:records.filter(r=>r.unit===hFilter);
+      set('hBody',recs.length?recs.map(r=>{
+        const names=(r.presentNames||[]).join(', ');
+        return `<tr>
+          <td>${fmtShort(r.date)}</td><td>${esc(r.unit)}</td><td>${svcLbl(r.service)}</td>
+          <td><strong>${r.present}</strong></td><td>${r.total}</td>
+          <td><span class="badge ${r.pct>=75?'g':r.pct>=50?'a':'r'}">${r.pct}%</span></td>
+          <td style="font-size:11px;color:var(--grey-4);max-width:160px">${esc(names)||'—'}</td>
+        </tr>`;
+      }).join(''):`<tr><td colspan="7" style="text-align:center;color:var(--grey-3);padding:20px">No records yet</td></tr>`);
+    }catch(e){console.error(e);}
+  };
+
+  window.renderSetup = async function(){
+    try{
+      const snap=await getDocs(collection(db,'users'));
+      const users=snap.docs.map(d=>({...d.data(),id:d.id})).filter(u=>u.role==='leader');
+      set('uList',users.length?users.map(u=>`<div class="urow">
+        <div class="uinfo"><div class="uname">${esc(u.name)}</div><div class="umeta">${esc(u.username)} · ${esc(u.unitType||'Hall')}: ${esc(u.unit)}</div></div>
+        <span class="rbadge leader">Leader</span>
+      </div>`).join(''):'<div style="font-size:12px;color:var(--grey-3)">No leaders yet.</div>');
+      document.getElementById('delSel').innerHTML=`<option value="">— Select leader —</option>`+
+        users.map(u=>`<option value="${u.id}">${esc(u.name)} (${esc(u.unitType||'Hall')}: ${esc(u.unit)})</option>`).join('');
+    }catch(e){console.error(e);}
+  };
+
+  window.addUnit = async function(){
+    const unitType=document.getElementById('newUnitType').value;
+    const unitName=document.getElementById('newUnitName').value.trim();
+    const leaderName=document.getElementById('newUnitLeaderName').value.trim();
+    const leaderUser=document.getElementById('newUnitLeaderUser').value.trim();
+    const leaderPass=document.getElementById('newUnitLeaderPass').value.trim();
+    if(!unitName||!leaderName||!leaderUser||!leaderPass){toast('Fill all unit fields','err');return;}
+    try{
+      const adminDoc=await getDoc(doc(db,'config','admin'));
+      if(adminDoc.exists()&&adminDoc.data().username===leaderUser){toast('Username taken','err');return;}
+      const snap=await getDocs(query(collection(db,'users'),where('username','==',leaderUser)));
+      if(!snap.empty){toast('Username already taken','err');return;}
+      await addDoc(collection(db,'users'),{username:leaderUser,password:leaderPass,name:leaderName,unit:unitName,unitType,role:'leader'});
+      ['newUnitName','newUnitLeaderName','newUnitLeaderUser','newUnitLeaderPass'].forEach(id=>document.getElementById(id).value='');
+      toast('Unit and leader created!','ok'); renderSetup();
+    }catch(e){toast('Failed to add unit','err');console.error(e);}
+  };
+
+  window.changePwd = async function(){
+    const c=v('pwCur'), n=v('pwNew'), cf=v('pwCon');
+    try{
+      const adminDoc=await getDoc(doc(db,'config','admin'));
+      if(!adminDoc.exists()||adminDoc.data().password!==c){toast('Current password incorrect','err');return;}
+      if(!n){toast('New password cannot be empty','err');return;}
+      if(n!==cf){toast('Passwords do not match','err');return;}
+      await updateDoc(doc(db,'config','admin'),{password:n});
+      ['pwCur','pwNew','pwCon'].forEach(id=>document.getElementById(id).value='');
+      toast('Password updated','ok');
+    }catch(e){toast('Update failed','err');console.error(e);}
+  };
+
+  window.removeLeader = async function(){
+    const id=document.getElementById('delSel').value;
+    if(!id){toast('Select a leader first','err');return;}
+    try{
+      const snap=await getDoc(doc(db,'users',id));
+      const u=snap.data();
+      if(!u||!confirm(`Remove ${u.name} (${u.unit})?`)) return;
+      await deleteDoc(doc(db,'users',id));
+      renderSetup(); toast(u.name+' removed');
+    }catch(e){toast('Failed to remove leader','err');console.error(e);}
+  };
+
+  window.switchTab = function(name){
+    const all=['Overview','Halls','Hostels','Depts','Reports','Members','Complaints','History','Setup'];
+    document.querySelectorAll('#adminTabs .tab').forEach((b,i)=>b.classList.toggle('on',all[i]===name));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+    document.getElementById('p'+name).classList.add('on');
+    if(name==='Overview')   renderOverview();
+    if(name==='Halls')      renderUnitTab('Hall');
+    if(name==='Hostels')    renderUnitTab('Hostel');
+    if(name==='Depts')      renderUnitTab('Department');
+    if(name==='Reports')    renderReports();
+    if(name==='Members')    renderAdminMembers();
+    if(name==='Complaints') renderComplaints();
+    if(name==='History')    renderHistory(hFilter);
+    if(name==='Setup')      renderSetup();
+  };
+
+  document.addEventListener('keydown',e=>{
+    if(e.key!=='Enter') return;
+    const active=document.querySelector('.screen.active');
+    if(active?.id==='sLogin')    doLogin();
+    if(active?.id==='sRegister') doRegister();
+  });
+
+  async function boot(){
+    try{
+      const adminRef=doc(db,'config','admin');
+      const adminDoc=await getDoc(adminRef);
+      if(!adminDoc.exists()) await setDoc(adminRef,{username:'ccfadmin',password:'Admin#CCF!9',name:'CCF Admin'});
+      restore();
+    }catch(e){
+      console.error(e); setLoading(false); show('sLogin');
+      toast('Could not connect to database','err');
+    }
+  }
+  window.addEventListener('load',boot);
+</script>
+</body>
+</html>
