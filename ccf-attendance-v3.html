@@ -1,0 +1,1423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CCF Attendance</title>
+  <meta name="description" content="CCF Attendance Tracker – Light to Our Generation" />
+  <meta name="theme-color" content="#C8102E" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="CCF Attend" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <style>
+    :root {
+      --red:#C8102E; --red-dark:#A00D24; --red-dim:rgba(200,16,46,0.07); --red-wash:#FCEEF0;
+      --white:#FFFFFF; --snow:#F8F9FB; --border:#E4E7EC;
+      --grey-1:#F2F4F7; --grey-2:#D0D5DD; --grey-3:#98A2B3; --grey-4:#475467; --grey-5:#101828;
+      --green:#16A34A; --green-bg:#DCFCE7; --amber:#D97706; --amber-bg:#FEF3C7;
+      --r:12px; --r-sm:8px; --r-xs:6px;
+      --sh:0 1px 4px rgba(16,24,40,0.06),0 2px 8px rgba(16,24,40,0.04);
+      --sh-md:0 4px 16px rgba(16,24,40,0.08),0 1px 4px rgba(16,24,40,0.04);
+      --sh-red:0 4px 16px rgba(200,16,46,0.18);
+      --surface:#FFFFFF; --surface-2:#F8F9FB;
+      --font: 'Times New Roman', Times, serif;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html,body{height:100%;font-family:var(--font);background:var(--snow);color:var(--grey-5);overflow-x:hidden;}
+    button{cursor:pointer;border:none;font-family:inherit;-webkit-tap-highlight-color:transparent;}
+    input,select,textarea{font-family:inherit;-webkit-appearance:none;appearance:none;font-size:16px;}
+    .screen{display:none;min-height:100dvh;flex-direction:column;}
+    .screen.active{display:flex;}
+    #toast{position:fixed;bottom:calc(28px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(70px);background:var(--grey-5);color:#fff;padding:11px 22px;border-radius:100px;font-size:13px;font-weight:500;transition:transform .3s cubic-bezier(.34,1.56,.64,1);z-index:9999;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center;}
+    #toast.show{transform:translateX(-50%) translateY(0);}
+    #toast.ok{background:var(--green);}
+    #toast.err{background:var(--red);}
+    #loadingOverlay{position:fixed;inset:0;background:var(--red);display:flex;align-items:center;justify-content:center;z-index:99999;flex-direction:column;gap:16px;}
+    #loadingOverlay .spin{width:36px;height:36px;border:3px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .7s linear infinite;}
+    #loadingOverlay p{color:white;font-size:13px;opacity:.8;font-weight:700;letter-spacing:1px;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+
+    /* ================= AUTH — full-screen split ================= */
+    .auth-shell{ min-height:100dvh; display:grid; grid-template-columns:minmax(320px,42%) 1fr; }
+    @media (max-width:860px){ .auth-shell{grid-template-columns:1fr;} .auth-visual{display:none;} }
+    .auth-visual{ position:relative; background:var(--red-wash); display:flex; align-items:center; justify-content:center; padding:60px 56px; overflow:hidden; }
+    .dot-grid{ position:absolute; inset:0; background-image:radial-gradient(rgba(200,16,46,0.16) 1.6px, transparent 1.6px); background-size:22px 22px; -webkit-mask-image:radial-gradient(ellipse 90% 80% at 30% 30%, black 40%, transparent 78%); mask-image:radial-gradient(ellipse 90% 80% at 30% 30%, black 40%, transparent 78%); }
+    .auth-visual::after{ content:''; position:absolute; right:-140px; bottom:-140px; width:420px; height:420px; border-radius:50%; background:radial-gradient(circle, rgba(200,16,46,0.10), transparent 70%); }
+    .auth-visual-inner{ position:relative; z-index:1; max-width:440px; }
+    .brand-tile{ width:104px; height:104px; border-radius:24px; background:linear-gradient(150deg, var(--red), var(--red-dark)); box-shadow:0 18px 40px -14px rgba(200,16,46,0.55); display:flex; align-items:center; justify-content:center; margin-bottom:28px; }
+    .brand-tile span{ font-weight:700; font-style:italic; font-size:38px; color:var(--white); }
+    .brand-title{ font-weight:700; font-size:clamp(2rem,3vw,2.5rem); color:var(--red-dark); line-height:1.1; }
+    .brand-tagline{ font-size:12px; font-weight:700; letter-spacing:2.2px; text-transform:uppercase; color:var(--red); margin:12px 0 20px; }
+    .brand-desc{ font-size:16px; line-height:1.7; color:var(--grey-4); max-width:38ch; }
+    .brand-link{ display:inline-flex; align-items:center; gap:6px; margin-top:24px; color:var(--red); font-weight:700; font-size:15px; text-decoration:none; cursor:pointer; border-bottom:2px solid var(--red); padding-bottom:2px; }
+    .auth-formside{ display:flex; align-items:center; justify-content:center; padding:48px 32px; background:var(--white); }
+    .auth-form-inner{ width:100%; max-width:400px; }
+    .auth-emblem{ width:58px; height:58px; margin:0 auto 16px; display:flex; align-items:center; justify-content:center; border-radius:16px; background:var(--red-dim); }
+    .auth-emblem svg{ width:28px; height:28px; }
+    .auth-form-inner h2{ font-size:2rem; font-weight:700; color:var(--grey-5); text-align:center; margin-bottom:6px; }
+    .auth-form-sub{ text-align:center; font-size:14px; color:var(--grey-3); margin-bottom:30px; }
+    .fg{margin-bottom:16px;}
+    .fg-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+    .fg label{display:block;font-size:12px;font-weight:700;color:var(--grey-4);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;}
+    .fg-link{font-size:12px;font-weight:700;color:var(--red);text-decoration:none;cursor:pointer;text-transform:none;}
+    .fg input,.fg select,.fg textarea{width:100%;padding:13px 15px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;color:var(--grey-5);background:var(--surface-2);transition:border-color .2s,box-shadow .2s;outline:none;-webkit-appearance:none;}
+    .fg textarea{resize:vertical;min-height:80px;line-height:1.5;font-size:15px;}
+    .fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--red);background:var(--white);box-shadow:0 0 0 3px rgba(200,16,46,0.08);}
+    .btn-red{display:block;width:100%;padding:15px;background:var(--red);color:var(--white);font-size:13px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;border-radius:var(--r-sm);transition:background .15s,box-shadow .15s;margin-top:6px;text-align:center;border:none;}
+    .btn-red:hover{box-shadow:0 4px 12px rgba(200,16,46,0.25);}
+    .btn-red:active{background:var(--red-dark);}
+    .btn-red:disabled{background:var(--grey-2);color:var(--grey-3);cursor:not-allowed;box-shadow:none;}
+    .btn-ghost{display:block;width:100%;padding:13px;background:transparent;color:var(--grey-4);font-size:13px;font-weight:700;border:1.5px solid var(--border);border-radius:var(--r-sm);margin-top:10px;text-align:center;transition:border-color .2s;}
+    .btn-ghost:active{border-color:var(--red);color:var(--red);}
+    .auth-footer{text-align:center;margin-top:22px;font-size:14px;color:var(--grey-3);}
+    .auth-footer a{color:var(--red);font-weight:700;cursor:pointer;}
+
+    /* ================= APP SHELL — sidebar + main (Notion-style) ================= */
+    .app-shell{ display:flex; min-height:100dvh; width:100%; }
+    .sidebar{ width:272px; flex-shrink:0; background:var(--white); border-right:1.5px solid var(--border); display:flex; flex-direction:column; position:sticky; top:0; height:100dvh; overflow-y:auto; }
+    .sidebar-brand{ padding:22px 20px 18px; display:flex; align-items:center; gap:11px; }
+    .sidebar-brand .tile{ width:36px;height:36px;border-radius:9px;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex-shrink:0; }
+    .sidebar-brand .txt-a{ font-weight:700; font-size:15px; color:var(--grey-5); line-height:1.2; }
+    .sidebar-brand .txt-b{ font-size:11px; color:var(--grey-3); margin-top:1px; }
+    .sidebar-user{ padding:14px 20px 16px; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+    .sidebar-user .name{ font-weight:700; font-size:14.5px; color:var(--grey-5); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .sidebar-user .unit{ font-size:12px; color:var(--grey-3); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .sidebar-nav{ flex:1; padding:14px 12px; overflow-y:auto; }
+    .sidebar-section-label{ font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:1.1px; color:var(--grey-3); padding:14px 10px 7px; }
+    .sidebar-item{ display:flex; align-items:center; gap:11px; width:100%; padding:10px 11px; border-radius:8px; font-size:14px; font-weight:600; color:var(--grey-4); background:transparent; text-align:left; margin-bottom:2px; transition:background .15s,color .15s; }
+    .sidebar-item:hover{ background:var(--grey-1); }
+    .sidebar-item.on{ background:var(--red-dim); color:var(--red); }
+    .sidebar-item .ic{ width:19px; text-align:center; flex-shrink:0; font-size:15px; }
+    .sidebar-item .badge-count{ margin-left:auto; background:var(--red); color:#fff; font-size:10px; font-weight:700; padding:2px 7px; border-radius:100px; }
+    .sidebar-footer{ padding:14px 16px calc(16px + env(safe-area-inset-bottom)); border-top:1px solid var(--border); }
+    .btn-signout-side{ width:100%; padding:11px; background:var(--grey-1); color:var(--grey-5); border-radius:var(--r-sm); font-size:13px; font-weight:700; text-align:center; }
+    .btn-signout-side:active{ background:var(--grey-2); }
+
+    .main-area{ flex:1; min-width:0; overflow-y:auto; height:100dvh; }
+    .main-inner{ max-width:1180px; margin:0 auto; padding:40px 48px 90px; }
+    .main-hd{ margin-bottom:26px; }
+    .main-hd h1{ font-size:1.9rem; font-weight:700; color:var(--grey-5); }
+    .main-hd p{ font-size:14px; color:var(--grey-3); margin-top:4px; }
+
+    .mobile-menu-btn{ display:none; position:fixed; top:14px; left:14px; z-index:60; background:var(--red); color:#fff; width:42px;height:42px;border-radius:10px; align-items:center; justify-content:center; font-size:19px; box-shadow:var(--sh-red); }
+    .sidebar-scrim{ display:none; }
+    @media(max-width:900px){
+      .mobile-menu-btn{ display:flex; }
+      .sidebar{ position:fixed; left:0; top:0; height:100dvh; transform:translateX(-100%); transition:transform .25s; z-index:65; box-shadow:0 0 30px rgba(0,0,0,.18); }
+      .sidebar.open{ transform:translateX(0); }
+      .sidebar-scrim.open{ display:block; position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:64; }
+      .main-inner{ padding:76px 20px 90px; }
+    }
+
+    /* ================= shared UI ================= */
+    .card{background:var(--white);border-radius:var(--r);padding:16px;margin-bottom:14px;box-shadow:var(--sh);border:1px solid rgba(0,0,0,0.055);}
+    .card-label{font-size:11px;font-weight:700;color:var(--grey-3);text-transform:uppercase;letter-spacing:.8px;display:block;margin-bottom:8px;}
+    .card select{width:100%;padding:11px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:15px;color:var(--grey-5);background:var(--snow);outline:none;-webkit-appearance:none;}
+    .banner{background:var(--red);border-radius:var(--r);padding:22px;margin-bottom:14px;box-shadow:var(--sh-red);color:var(--white);}
+    .banner h3{font-size:22px;font-weight:700;}
+    .banner p{font-size:13px;opacity:.75;margin-top:3px;}
+    .live-pill{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.18);border-radius:100px;padding:4px 12px;font-size:11px;font-weight:700;margin-top:11px;}
+    .dot{width:7px;height:7px;border-radius:50%;background:#4ADE80;animation:blink 1.5s infinite;}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;}
+    .stat{background:var(--white);border-radius:var(--r-sm);padding:14px 8px;text-align:center;box-shadow:var(--sh);border:1px solid rgba(0,0,0,0.055);}
+    .stat-num{font-size:26px;font-weight:700;color:var(--red);line-height:1;}
+    .stat-num.dim{color:var(--grey-2);}
+    .stat-lbl{font-size:10px;color:var(--grey-3);text-transform:uppercase;letter-spacing:.6px;margin-top:4px;}
+    .search{display:flex;align-items:center;gap:8px;background:var(--white);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:12px 14px;margin-bottom:12px;}
+    .search svg{width:15px;height:15px;fill:var(--grey-3);flex-shrink:0;}
+    .search input{flex:1;border:none;background:transparent;font-size:15px;color:var(--grey-5);outline:none;-webkit-appearance:none;}
+    .search input::placeholder{color:var(--grey-3);}
+    .lhdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+    .lhdr h4{font-size:15px;font-weight:700;}
+    .lhdr span{font-size:12px;color:var(--grey-3);}
+    .mrow{background:var(--white);border-radius:var(--r-sm);display:flex;align-items:center;gap:12px;padding:12px 14px;margin-bottom:8px;box-shadow:var(--sh);border:1px solid rgba(0,0,0,0.055);transition:box-shadow .2s,border-color .2s;}
+    .mrow:hover{box-shadow:var(--sh-md);border-color:rgba(200,16,46,0.15);}
+    .avatar{width:38px;height:38px;border-radius:50%;background:var(--grey-1);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:var(--grey-4);flex-shrink:0;}
+    .avatar.on{background:rgba(200,16,46,.12);color:var(--red);}
+    .minfo{flex:1;min-width:0;}
+    .mname{font-size:14.5px;font-weight:600;}
+    .mstatus{font-size:11.5px;color:var(--grey-3);margin-top:1px;}
+    .tog{width:48px;height:26px;border-radius:100px;background:var(--grey-2);flex-shrink:0;position:relative;transition:background .22s;border:none;}
+    .tog.on{background:var(--green);}
+    .tog::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--white);box-shadow:0 1px 4px rgba(0,0,0,.18);transition:transform .22s cubic-bezier(.34,1.56,.64,1);}
+    .tog.on::after{transform:translateX(22px);}
+    .note-btn{background:var(--red-dim);color:var(--red);border:none;border-radius:var(--r-xs);padding:6px 9px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;margin-right:4px;}
+    .note-btn.has-note{background:rgba(200,16,46,.18);}
+    .del-btn{background:var(--grey-1);color:var(--grey-4);border:none;border-radius:var(--r-xs);padding:6px 9px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;margin-right:4px;}
+    .del-btn:active{background:var(--grey-2);}
+    .info-btn{background:rgba(200,16,46,.07);color:var(--red);border:none;border-radius:var(--r-xs);padding:6px 9px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;margin-right:4px;}
+    .info-btn:active{background:rgba(200,16,46,.15);}
+    .add-row{display:flex;gap:8px;margin-top:14px;}
+    .add-row input{flex:1;padding:12px 13px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:15px;background:var(--white);color:var(--grey-5);outline:none;-webkit-appearance:none;}
+    .add-row input:focus{border-color:var(--red);}
+    .btn-add{background:var(--red);color:var(--white);padding:12px 18px;border-radius:var(--r-sm);font-size:12px;font-weight:700;white-space:nowrap;border:none;letter-spacing:.6px;text-transform:uppercase;}
+    .btn-add:active{background:var(--red-dark);}
+    .cred-box{background:var(--white);border-radius:var(--r-sm);padding:14px;margin-top:8px;box-shadow:var(--sh);border:1px solid rgba(0,0,0,0.055);}
+    .cred-box p{font-size:12px;color:var(--grey-4);margin-bottom:12px;line-height:1.5;}
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:999;padding:20px;}
+    .ocard{background:var(--white);border-radius:var(--r);padding:30px 22px;text-align:center;max-width:340px;width:100%;border:1px solid rgba(0,0,0,0.055);}
+    .ocard .icon{width:60px;height:60px;border-radius:50%;background:var(--green-bg);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;}
+    .ocard .icon svg{width:30px;height:30px;fill:var(--green);}
+    .ocard h3{font-size:19px;font-weight:700;margin-bottom:8px;}
+    .ocard p{font-size:13.5px;color:var(--grey-4);line-height:1.55;}
+    .note-modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px;}
+    .note-modal-card{background:var(--white);border-radius:var(--r);padding:26px 22px;width:100%;max-width:460px;max-height:90dvh;overflow-y:auto;border:1px solid rgba(0,0,0,0.07);}
+    .note-modal-card h3{font-size:18px;font-weight:700;margin-bottom:4px;}
+    .note-modal-card p{font-size:13px;color:var(--grey-3);margin-bottom:14px;}
+    .panel{display:none;}
+    .panel.on{display:block;}
+    .scard{background:var(--white);border-radius:var(--r);padding:16px;margin-bottom:14px;box-shadow:var(--sh);border:1px solid rgba(0,0,0,0.055);}
+    .scard-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;}
+    .scard-title{font-size:15px;font-weight:700;}
+    .badge{padding:3px 10px;border-radius:100px;font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;}
+    .badge.g{background:var(--green-bg);color:var(--green);}
+    .badge.a{background:var(--amber-bg);color:var(--amber);}
+    .badge.r{background:rgba(200,16,46,.08);color:var(--red);}
+    .badge.p{background:var(--grey-1);color:var(--grey-3);}
+    .badge.b{background:rgba(59,130,246,.08);color:#3B82F6;}
+    .pbar{height:7px;background:var(--grey-1);border-radius:100px;overflow:hidden;margin-top:5px;}
+    .pfill{height:100%;border-radius:100px;transition:width .55s;}
+    .pfill.g{background:var(--green);}
+    .pfill.a{background:var(--amber);}
+    .pfill.r{background:var(--red);}
+    .plabels{display:flex;justify-content:space-between;font-size:12px;color:var(--grey-4);}
+    .sum-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+    .sum-mini{background:var(--white);border-radius:var(--r-sm);padding:14px 8px;text-align:center;box-shadow:var(--sh);border:1px solid rgba(0,0,0,0.055);}
+    .sum-val{font-size:22px;font-weight:700;color:var(--red);}
+    .sum-lbl{font-size:10px;color:var(--grey-3);text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
+    .chips{display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;margin-bottom:14px;scrollbar-width:none;}
+    .chips::-webkit-scrollbar{display:none;}
+    .chip{padding:8px 15px;border-radius:100px;font-size:13px;font-weight:600;background:var(--white);color:var(--grey-4);border:1.5px solid var(--border);white-space:nowrap;flex-shrink:0;cursor:pointer;}
+    .chip.on{background:var(--red);color:var(--white);border-color:var(--red);box-shadow:0 2px 8px rgba(200,16,46,0.22);}
+    .htbl{width:100%;border-collapse:collapse;}
+    .htbl th{text-align:left;font-size:11px;font-weight:700;color:var(--grey-3);text-transform:uppercase;letter-spacing:.5px;padding:8px 9px;border-bottom:1.5px solid var(--border);}
+    .htbl td{padding:10px 9px;font-size:13px;border-bottom:1px solid var(--grey-1);vertical-align:top;}
+    .htbl tr:last-child td{border-bottom:none;}
+    .setup-section{background:var(--white);border-radius:var(--r);padding:16px;margin-bottom:14px;box-shadow:var(--sh);border:1px solid rgba(0,0,0,0.055);}
+    .setup-section h4{font-size:12px;font-weight:700;color:var(--grey-3);text-transform:uppercase;letter-spacing:.9px;margin-bottom:14px;}
+    .urow{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--grey-1);}
+    .urow:last-child{border-bottom:none;}
+    .uinfo{flex:1;}
+    .uname{font-size:14px;font-weight:600;}
+    .umeta{font-size:12px;color:var(--grey-3);}
+    .rbadge{padding:3px 9px;border-radius:100px;font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;}
+    .rbadge.leader{background:var(--grey-1);color:var(--grey-4);}
+    .unit-type-hd{font-size:11px;font-weight:800;color:var(--grey-3);text-transform:uppercase;letter-spacing:1.2px;margin:18px 0 9px;padding-bottom:6px;border-bottom:1.5px solid var(--border);}
+    .rep-row{display:flex;justify-content:space-between;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--grey-1);font-size:13px;gap:8px;}
+    .rep-row:last-child{border-bottom:none;}
+    .rep-key{color:var(--grey-4);flex-shrink:0;}
+    .rep-val{font-weight:700;color:var(--grey-5);text-align:right;}
+    .mem-hero{background:var(--red);padding:26px 20px 22px;color:var(--white);border-radius:var(--r);}
+    .mem-hero h2{font-size:22px;font-weight:700;}
+    .mem-hero p{font-size:13px;opacity:.75;margin-top:4px;}
+    .mem-unit-badge{display:inline-block;background:rgba(255,255,255,.18);border-radius:100px;padding:5px 14px;font-size:12.5px;font-weight:700;margin-top:11px;}
+    .empty{text-align:center;padding:30px 16px;font-size:14px;color:var(--grey-3);}
+    .loc-toggle-card{background:var(--white);border-radius:var(--r);padding:18px;margin-bottom:14px;box-shadow:var(--sh);border:1px solid rgba(0,0,0,0.055);display:flex;align-items:center;gap:15px;}
+    .loc-toggle-icon{width:46px;height:46px;border-radius:50%;background:var(--red-dim);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;transition:background .25s;}
+    .loc-toggle-icon.active{background:rgba(22,163,74,.12);}
+    .loc-toggle-info{flex:1;min-width:0;}
+    .loc-toggle-title{font-size:15px;font-weight:700;color:var(--grey-5);}
+    .loc-toggle-sub{font-size:12px;color:var(--grey-3);margin-top:3px;}
+    .loc-big-tog{width:54px;height:30px;border-radius:100px;background:var(--grey-2);flex-shrink:0;position:relative;transition:background .25s;border:none;cursor:pointer;}
+    .loc-big-tog.on{background:var(--green);}
+    .loc-big-tog::after{content:'';position:absolute;top:4px;left:4px;width:22px;height:22px;border-radius:50%;background:var(--white);box-shadow:0 1px 4px rgba(0,0,0,.2);transition:transform .25s cubic-bezier(.34,1.56,.64,1);}
+    .loc-big-tog.on::after{transform:translateX(24px);}
+    .loc-section-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+    .loc-section-hd h4{font-size:15px;font-weight:700;}
+    .loc-refresh-btn{background:var(--grey-1);color:var(--grey-5);border:none;border-radius:var(--r-sm);padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.4px;text-transform:uppercase;}
+    .loc-refresh-btn:active{background:var(--grey-2);}
+    .loc-row{background:var(--white);border-radius:var(--r-sm);padding:12px 14px;margin-bottom:8px;box-shadow:var(--sh);border:1px solid rgba(0,0,0,0.055);display:flex;align-items:center;gap:10px;}
+    .loc-dot{width:10px;height:10px;border-radius:50%;background:var(--grey-2);flex-shrink:0;}
+    .loc-dot.live{background:var(--green);box-shadow:0 0 0 3px rgba(22,163,74,.18);}
+    .loc-info{flex:1;min-width:0;}
+    .loc-name{font-size:14.5px;font-weight:600;}
+    .loc-meta{font-size:12px;color:var(--grey-3);margin-top:1px;}
+    .loc-map-btn{background:var(--red-dim);color:var(--red);border:none;border-radius:var(--r-sm);padding:8px 13px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;letter-spacing:.3px;text-transform:uppercase;}
+    .loc-map-btn:active{background:rgba(200,16,46,.15);}
+    .profile-detail{display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--grey-1);font-size:13px;}
+    .profile-detail:last-child{border-bottom:none;}
+    .profile-key{color:var(--grey-3);width:100px;flex-shrink:0;font-weight:600;}
+    .profile-val{color:var(--grey-5);font-weight:500;flex:1;}
+    .name-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;}
+    .name-tag{background:var(--green-bg);color:var(--green);border-radius:100px;padding:4px 11px;font-size:11px;font-weight:600;letter-spacing:.2px;}
+    .complaint-row{padding:13px 0;border-bottom:1px solid var(--grey-1);}
+    .complaint-row:last-child{border-bottom:none;}
+    .complaint-meta{font-size:12px;color:var(--grey-3);margin-bottom:4px;}
+    .complaint-text{font-size:14px;color:var(--grey-5);line-height:1.55;}
+    .report-section{background:var(--white);border-radius:var(--r);padding:18px;margin-bottom:14px;box-shadow:var(--sh);border:1px solid rgba(0,0,0,0.055);}
+    .report-section h4{font-size:12px;font-weight:800;color:var(--grey-4);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px;}
+    .btn-red.wide{padding:14px;font-size:12.5px;}
+
+    /* legacy member-page nav (unchanged screen) */
+    .nav{background:var(--red);color:var(--white);padding:calc(12px + env(safe-area-inset-top)) 16px 10px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:var(--sh-red);border-bottom:1px solid rgba(0,0,0,0.10);}
+    .nav-left{display:flex;align-items:center;gap:10px;min-width:0;}
+    .nav-brand{font-weight:700;font-size:17px;letter-spacing:1px;color:var(--white);flex-shrink:0;}
+    .nav-divider{width:1px;height:22px;background:rgba(255,255,255,.25);flex-shrink:0;}
+    .nav-info{min-width:0;}
+    .nav-info h2{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .nav-info p{font-size:11px;opacity:.7;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .btn-signout{background:rgba(255,255,255,.15);color:var(--white);padding:7px 13px;border-radius:100px;font-size:12px;font-weight:600;flex-shrink:0;white-space:nowrap;}
+    .btn-signout:active{background:rgba(255,255,255,.28);}
+    .body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 14px calc(100px + env(safe-area-inset-bottom));}
+    @media(min-width:600px){.body{max-width:680px;margin:0 auto;padding-left:20px;padding-right:20px;}}
+  </style>
+</head>
+<body>
+
+<div id="loadingOverlay"><div class="spin"></div><p>LOADING…</p></div>
+<div id="toast"></div>
+
+<!-- MEMBER PROFILE MODAL -->
+<div id="profileModal" class="note-modal" style="display:none" onclick="if(event.target===this)closeProfileModal()">
+  <div class="note-modal-card">
+    <h3 id="profileModalName">Member Profile</h3>
+    <p id="profileModalUnit" style="margin-bottom:16px"></p>
+    <div id="profileModalBody"></div>
+    <button class="btn-ghost" style="margin-top:14px" onclick="closeProfileModal()">Close</button>
+  </div>
+</div>
+
+<!-- NOTE MODAL -->
+<div id="noteModal" class="note-modal" style="display:none" onclick="if(event.target===this)closeNoteModal()">
+  <div class="note-modal-card">
+    <h3 id="noteModalTitle">Member Note</h3>
+    <p>Notes are saved privately and only visible to you.</p>
+    <div class="fg"><label>Note</label><textarea id="noteText" placeholder="e.g. Follow up next week."></textarea></div>
+    <button class="btn-red" onclick="saveNote()">Save Note</button>
+    <button class="btn-ghost" onclick="closeNoteModal()">Cancel</button>
+  </div>
+</div>
+
+<!-- ADD MEMBER MODAL -->
+<div id="addMemberModal" class="note-modal" style="display:none" onclick="if(event.target===this)cancelAddMember()">
+  <div class="note-modal-card">
+    <h3>Add Member</h3>
+    <p style="margin-bottom:16px">Fill in member details. Username and password are optional — they allow the member to log in.</p>
+    <div class="fg"><label>Full Name *</label><input type="text" id="mNewName" placeholder="Member's full name"/></div>
+    <div class="fg"><label>Programme of Study</label><input type="text" id="mNewProg" placeholder="e.g. BSc Computer Science"/></div>
+    <div class="fg"><label>Hall / Hostel of Residence</label><input type="text" id="mNewHall" placeholder="e.g. Commonwealth Hall"/></div>
+    <div class="fg"><label>Phone Number</label><input type="tel" id="mNewPhone" placeholder="e.g. 0241234567"/></div>
+    <div style="height:1px;background:var(--border);margin:10px 0 14px"></div>
+    <div class="fg"><label>Username (optional)</label><input type="text" id="mNewUser" placeholder="Choose a username" autocomplete="off"/></div>
+    <div class="fg" style="margin-bottom:16px"><label>Password (optional)</label><input type="password" id="mNewPass" placeholder="Choose a password" autocomplete="off"/></div>
+    <button class="btn-red" onclick="confirmAddMember()">Add Member</button>
+    <button class="btn-ghost" onclick="cancelAddMember()">Cancel</button>
+  </div>
+</div>
+
+<!-- SUBMIT OVERLAY -->
+<div id="oSubmit" class="overlay" style="display:none">
+  <div class="ocard">
+    <div class="icon"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+    <h3>Submitted!</h3><p id="oMsg"></p>
+    <button class="btn-red" style="margin-top:16px" onclick="closeSubmit()">Done</button>
+  </div>
+</div>
+
+<!-- LOGIN — full-screen split -->
+<div id="sLogin" class="screen">
+  <div class="auth-shell">
+    <div class="auth-visual">
+      <div class="dot-grid"></div>
+      <div class="auth-visual-inner">
+        <div class="brand-tile"><span>CCF</span></div>
+        <h1 class="brand-title">CCF Attendance</h1>
+        <div class="brand-tagline">Light to Our Generation</div>
+        <p class="brand-desc">One dashboard for every Hall, Hostel and Department — mark attendance in seconds, follow up with members who need it, and see the whole church at a glance.</p>
+        <a class="brand-link" onclick="show('sRegister')">Register your unit →</a>
+      </div>
+    </div>
+    <div class="auth-formside">
+      <div class="auth-form-inner">
+        <div class="auth-emblem">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 2 3 6v6c0 5 3.8 8.6 9 10 5.2-1.4 9-5 9-10V6l-9-4Z" stroke="#C8102E" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        </div>
+        <h2>Sign In</h2>
+        <p class="auth-form-sub">Sign in to your unit's attendance dashboard</p>
+        <div class="fg">
+          <label>Username</label>
+          <input type="text" id="lUser" placeholder="Enter username" autocomplete="username" inputmode="text" />
+        </div>
+        <div class="fg">
+          <div class="fg-row"><label style="margin-bottom:0">Password</label><a class="fg-link" onclick="toast('Ask your admin to reset it for you','ok')">Forgot password?</a></div>
+          <input type="password" id="lPass" placeholder="Enter password" autocomplete="current-password" />
+        </div>
+        <button class="btn-red" id="loginBtn" onclick="doLogin()">Sign In</button>
+        <div class="auth-footer">New unit leader? <a onclick="show('sRegister')">Register here</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- REGISTER — full-screen split -->
+<div id="sRegister" class="screen">
+  <div class="auth-shell">
+    <div class="auth-visual">
+      <div class="dot-grid"></div>
+      <div class="auth-visual-inner">
+        <div class="brand-tile"><span>CCF</span></div>
+        <h1 class="brand-title">Register a Unit</h1>
+        <div class="brand-tagline">Light to Our Generation</div>
+        <p class="brand-desc">Set up your Hall, Hostel, or Department in a minute — you'll get your own leader login and a live attendance dashboard right away.</p>
+        <a class="brand-link" onclick="show('sLogin')">← Back to login</a>
+      </div>
+    </div>
+    <div class="auth-formside">
+      <div class="auth-form-inner">
+        <div class="auth-emblem">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 2 3 6v6c0 5 3.8 8.6 9 10 5.2-1.4 9-5 9-10V6l-9-4Z" stroke="#C8102E" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        </div>
+        <h2>Create Account</h2>
+        <p class="auth-form-sub">For Hall, Hostel and Department leaders</p>
+        <div class="fg"><label>Unit Type</label>
+          <select id="rUnitType">
+            <option value="Hall">Hall</option>
+            <option value="Hostel">Hostel</option>
+            <option value="Department">Department</option>
+          </select>
+        </div>
+        <div class="fg"><label>Unit Name</label><input type="text" id="rUnit" placeholder="e.g. Unity Hall, Engineering Dept…"/></div>
+        <div class="fg"><label>Your Full Name</label><input type="text" id="rName" placeholder="Your name"/></div>
+        <div class="fg"><label>Username</label><input type="text" id="rUser" placeholder="Choose a username" autocomplete="username"/></div>
+        <div class="fg"><label>Password</label><input type="password" id="rPass" placeholder="Choose a password" autocomplete="new-password"/></div>
+        <button class="btn-red" id="registerBtn" onclick="doRegister()">Create Account</button>
+        <button class="btn-ghost" onclick="show('sLogin')">← Back to Sign In</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LEADER SCREEN — sidebar layout -->
+<div id="sLeader" class="screen">
+  <div class="app-shell">
+    <button class="mobile-menu-btn" onclick="toggleSidebar('leaderSidebar','leaderScrim')">☰</button>
+    <div class="sidebar-scrim" id="leaderScrim" onclick="toggleSidebar('leaderSidebar','leaderScrim')"></div>
+    <aside class="sidebar" id="leaderSidebar">
+      <div class="sidebar-brand"><div class="tile">CCF</div><div><div class="txt-a">CCF Attendance</div><div class="txt-b">Light to Our Generation</div></div></div>
+      <div class="sidebar-user"><div class="name" id="lNavName">Leader</div><div class="unit" id="lNavUnit">—</div></div>
+      <nav class="sidebar-nav">
+        <div class="sidebar-section-label">Your Unit</div>
+        <button class="sidebar-item on" data-panel="pLAttendance" onclick="switchLeaderPanel('pLAttendance', this)"><span class="ic">📋</span>Attendance</button>
+        <button class="sidebar-item" data-panel="pLDawn" onclick="switchLeaderPanel('pLDawn', this)"><span class="ic">📢</span>Dawn Meeting</button>
+        <button class="sidebar-item" data-panel="pLDept" onclick="switchLeaderPanel('pLDept', this)"><span class="ic">🏛</span>Departmental Meeting</button>
+        <button class="sidebar-item" data-panel="pLLocations" onclick="switchLeaderPanel('pLLocations', this)"><span class="ic">📍</span>Member Locations</button>
+      </nav>
+      <div class="sidebar-footer"><button class="btn-signout-side" onclick="doLogout()">Sign Out</button></div>
+    </aside>
+
+    <div class="main-area">
+      <div class="main-inner">
+
+        <!-- Attendance panel -->
+        <div id="pLAttendance" class="panel on">
+          <div class="main-hd"><h1>Attendance</h1><p>Mark today's attendance and manage your unit's members</p></div>
+          <div class="card">
+            <span class="card-label">Service</span>
+            <select id="svcSel">
+              <option value="s1">Sunday Service</option>
+              <option value="mw">Midweek Service</option>
+              <option value="pm">Prayer Meeting</option>
+              <option value="sp">Special Programme</option>
+            </select>
+          </div>
+          <div class="banner">
+            <h3 id="banUnit">—</h3><p id="banDate">—</p>
+            <div class="live-pill"><div class="dot"></div>Live Attendance</div>
+          </div>
+          <div class="stats">
+            <div class="stat"><div class="stat-num" id="sP">0</div><div class="stat-lbl">Present</div></div>
+            <div class="stat"><div class="stat-num dim" id="sA">0</div><div class="stat-lbl">Absent</div></div>
+            <div class="stat"><div class="stat-num" id="sT">0</div><div class="stat-lbl">Total</div></div>
+            <div class="stat"><div class="stat-num" id="sPct">0%</div><div class="stat-lbl">Rate</div></div>
+          </div>
+          <div class="search">
+            <svg viewBox="0 0 24 24"><path d="M10 2a8 8 0 105.29 13.71l4.5 4.5 1.42-1.42-4.5-4.5A8 8 0 0010 2zm0 2a6 6 0 110 12A6 6 0 0110 4z"/></svg>
+            <input type="text" id="mSearch" placeholder="Search members…" oninput="renderMembers()"/>
+          </div>
+          <div class="lhdr"><h4>Members</h4><span id="mCount"></span></div>
+          <div id="mList"></div>
+          <div style="margin-top:10px">
+            <button class="btn-add" style="width:100%;border-radius:var(--r-sm)" onclick="openAddMemberModal()">+ Add Member</button>
+          </div>
+          <button class="btn-red wide" style="margin-top:22px" onclick="submitAtt()">✓ Submit Attendance</button>
+        </div>
+
+        <!-- Dawn Meeting panel -->
+        <div id="pLDawn" class="panel">
+          <div class="main-hd"><h1>Dawn Meeting Report</h1><p>Log participation for your unit's dawn meetings</p></div>
+          <div class="report-section">
+            <h4>📢 Dawn Meeting Report</h4>
+            <div class="fg"><label>Date</label><input type="date" id="dbDate"/></div>
+            <div class="fg"><label>Number of Participants</label><input type="number" id="dbCount" placeholder="e.g. 12" min="0"/></div>
+            <div class="fg" style="margin-bottom:0"><label>Notes / Observations</label><textarea id="dbNotes" placeholder="Any observations or highlights…" style="min-height:70px"></textarea></div>
+            <button class="btn-red wide" style="margin-top:14px" onclick="submitDawnBroadcast()">Submit Dawn Meeting</button>
+          </div>
+        </div>
+
+        <!-- Departmental Meeting panel -->
+        <div id="pLDept" class="panel">
+          <div class="main-hd"><h1>Departmental Meeting Report</h1><p>Log agenda, attendance, and notes from unit meetings</p></div>
+          <div class="report-section">
+            <h4>🏛 Departmental Meeting Report</h4>
+            <div class="fg"><label>Date</label><input type="date" id="dmDate"/></div>
+            <div class="fg"><label>Agenda / Topic</label><input type="text" id="dmAgenda" placeholder="e.g. Welfare, Evangelism planning…"/></div>
+            <div class="fg"><label>Number Present</label><input type="number" id="dmCount" placeholder="e.g. 8" min="0"/></div>
+            <div class="fg" style="margin-bottom:0"><label>Minutes / Summary</label><textarea id="dmNotes" placeholder="Brief summary of what was discussed…" style="min-height:70px"></textarea></div>
+            <button class="btn-red wide" style="margin-top:14px" onclick="submitDeptMeeting()">Submit Meeting Report</button>
+          </div>
+        </div>
+
+        <!-- Locations panel -->
+        <div id="pLLocations" class="panel">
+          <div class="main-hd"><h1>Member Locations</h1><p>See which members are currently sharing their location</p></div>
+          <div class="loc-section-hd">
+            <h4>📍 Live Locations</h4>
+            <button class="loc-refresh-btn" onclick="loadLeaderLocations()">Refresh</button>
+          </div>
+          <div id="leaderLocList"><div class="empty" style="padding:14px 0">No members sharing location yet.</div></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MEMBER SCREEN (unchanged) -->
+<div id="sMember" class="screen">
+  <div class="nav">
+    <div class="nav-left">
+      <div class="nav-brand">CCF</div><div class="nav-divider"></div>
+      <div class="nav-info"><h2 id="memNavUnit">—</h2><p id="memNavName">Member</p></div>
+    </div>
+    <button class="btn-signout" onclick="doLogout()">Sign Out</button>
+  </div>
+  <div class="body">
+    <div class="mem-hero">
+      <h2 id="memHeroName">Welcome</h2>
+      <p id="memHeroUnit">—</p>
+      <div class="mem-unit-badge" id="memUnitBadge">—</div>
+    </div>
+    <div style="height:14px"></div>
+    <div class="loc-toggle-card">
+      <div class="loc-toggle-icon" id="locToggleIcon">📍</div>
+      <div class="loc-toggle-info">
+        <div class="loc-toggle-title">Share My Location</div>
+        <div class="loc-toggle-sub" id="locToggleSub">Off — your leader cannot see you</div>
+      </div>
+      <button class="loc-big-tog" id="locBigTog" onclick="toggleMemberLocation()"></button>
+    </div>
+    <div class="scard">
+      <div class="scard-hd"><div class="scard-title">📬 Send a Complaint</div></div>
+      <p style="font-size:12px;color:var(--grey-3);margin-bottom:12px;line-height:1.5">Your complaint goes directly to the admin. Your name and unit will be attached.</p>
+      <div class="fg"><label>Your Complaint</label><textarea id="complaintText" placeholder="Describe your issue or concern here…" style="min-height:100px"></textarea></div>
+      <button class="btn-red" id="complaintBtn" onclick="sendComplaint()">Send to Admin</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN SCREEN — sidebar layout -->
+<div id="sAdmin" class="screen">
+  <div class="app-shell">
+    <button class="mobile-menu-btn" onclick="toggleSidebar('adminSidebar','adminScrim')">☰</button>
+    <div class="sidebar-scrim" id="adminScrim" onclick="toggleSidebar('adminSidebar','adminScrim')"></div>
+    <aside class="sidebar" id="adminSidebar">
+      <div class="sidebar-brand"><div class="tile">CCF</div><div><div class="txt-a">CCF Attendance</div><div class="txt-b">Light to Our Generation</div></div></div>
+      <div class="sidebar-user"><div class="name" id="aNavName">Administrator</div><div class="unit">Admin Dashboard</div></div>
+      <nav class="sidebar-nav">
+        <div class="sidebar-section-label">Overview</div>
+        <button class="sidebar-item on" onclick="switchTab('Overview')"><span class="ic">🏠</span>Overview</button>
+        <div class="sidebar-section-label">Units</div>
+        <button class="sidebar-item" onclick="switchTab('Halls')"><span class="ic">🏛</span>Halls</button>
+        <button class="sidebar-item" onclick="switchTab('Hostels')"><span class="ic">🏠</span>Hostels</button>
+        <button class="sidebar-item" onclick="switchTab('Depts')"><span class="ic">📚</span>Departments</button>
+        <div class="sidebar-section-label">Church-wide</div>
+        <button class="sidebar-item" onclick="switchTab('Reports')"><span class="ic">📊</span>Reports</button>
+        <button class="sidebar-item" onclick="switchTab('Members')"><span class="ic">👥</span>Members</button>
+        <button class="sidebar-item" onclick="switchTab('Complaints')"><span class="ic">📬</span>Complaints</button>
+        <button class="sidebar-item" onclick="switchTab('History')"><span class="ic">🕒</span>History</button>
+        <div class="sidebar-section-label">Administration</div>
+        <button class="sidebar-item" onclick="switchTab('Setup')"><span class="ic">⚙️</span>Setup</button>
+      </nav>
+      <div class="sidebar-footer"><button class="btn-signout-side" onclick="doLogout()">Sign Out</button></div>
+    </aside>
+
+    <div class="main-area">
+      <div class="main-inner">
+
+        <div id="pOverview" class="panel on">
+          <div class="main-hd"><h1>Overview</h1><p>Live attendance status across every unit</p></div>
+          <div style="margin-bottom:14px;max-width:340px">
+            <select id="aSvc" onchange="renderOverview()" style="width:100%;padding:11px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:15px;background:var(--white);outline:none;-webkit-appearance:none;">
+              <option value="s1">Sunday Service</option>
+              <option value="mw">Midweek Service</option>
+              <option value="pm">Prayer Meeting</option>
+              <option value="sp">Special Programme</option>
+            </select>
+          </div>
+          <div class="sum-grid" id="oSum"></div>
+          <div id="oCards"></div>
+        </div>
+
+        <div id="pHalls" class="panel"><div class="main-hd"><h1>Halls</h1><p>Recent attendance by hall</p></div><div id="hCardsHall"><div class="empty">Loading…</div></div></div>
+        <div id="pHostels" class="panel"><div class="main-hd"><h1>Hostels</h1><p>Recent attendance by hostel</p></div><div id="hCardsHostel"><div class="empty">Loading…</div></div></div>
+        <div id="pDepts" class="panel"><div class="main-hd"><h1>Departments</h1><p>Recent attendance by department</p></div><div id="hCardsDepartment"><div class="empty">Loading…</div></div></div>
+
+        <div id="pReports" class="panel">
+          <div class="main-hd"><h1>Reports</h1><p>Attendance, dawn meeting, and departmental meeting reports</p></div>
+          <div class="scard" style="margin-bottom:14px">
+            <div class="scard-hd" style="margin-bottom:11px"><div class="scard-title">Filter</div></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+              <div class="fg" style="margin-bottom:0"><label>Unit</label><select id="repUnit" onchange="renderReports()"><option value="all">All Units</option></select></div>
+              <div class="fg" style="margin-bottom:0"><label>Report Type</label>
+                <select id="repType" onchange="renderReports()">
+                  <option value="all">All Reports</option>
+                  <option value="attendance">Attendance</option>
+                  <option value="dawn">Dawn Meeting</option>
+                  <option value="dept">Departmental Meeting</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div id="repOut"></div>
+        </div>
+
+        <div id="pMembers" class="panel">
+          <div class="main-hd"><h1>Members</h1><p>Every registered member across the church</p></div>
+          <div class="scard" style="margin-bottom:14px;max-width:340px">
+            <div class="fg" style="margin-bottom:0"><label>Filter by Unit</label>
+              <select id="memberUnitFilter" onchange="renderAdminMembers()" style="width:100%;padding:11px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:15px;background:var(--white);outline:none;-webkit-appearance:none;">
+                <option value="all">All Units</option>
+              </select>
+            </div>
+          </div>
+          <div id="adminMemberList"><div class="empty">Loading…</div></div>
+        </div>
+
+        <div id="pComplaints" class="panel">
+          <div class="main-hd"><h1>Complaints</h1><p>Messages sent directly from members</p></div>
+          <div class="scard-hd" style="margin-bottom:11px">
+            <div class="scard-title">Member Complaints</div>
+            <span id="complaintCount" style="font-size:12px;color:var(--grey-3)"></span>
+          </div>
+          <div id="complaintList"><div class="empty">No complaints yet.</div></div>
+        </div>
+
+        <div id="pHistory" class="panel">
+          <div class="main-hd"><h1>History</h1><p>Full attendance history across every unit</p></div>
+          <div class="chips" id="hChips"></div>
+          <div class="scard" style="overflow-x:auto">
+            <table class="htbl">
+              <thead><tr><th>Date</th><th>Unit</th><th>Service</th><th>Present</th><th>Total</th><th>%</th><th>Names</th></tr></thead>
+              <tbody id="hBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="pSetup" class="panel">
+          <div class="main-hd"><h1>Setup</h1><p>Manage leaders, units, and admin settings</p></div>
+          <div class="setup-section"><h4>Registered Leaders</h4><div id="uList"></div></div>
+          <div class="setup-section">
+            <h4>Change Admin Password</h4>
+            <div class="fg"><label>Current Password</label><input type="password" id="pwCur" placeholder="Current password"/></div>
+            <div class="fg"><label>New Password</label><input type="password" id="pwNew" placeholder="New password"/></div>
+            <div class="fg"><label>Confirm New Password</label><input type="password" id="pwCon" placeholder="Confirm password"/></div>
+            <button class="btn-red" onclick="changePwd()">Update Password</button>
+          </div>
+          <div class="setup-section" style="border:1.5px solid rgba(22,163,74,.25)">
+            <h4 style="color:var(--green)">Add a New Unit</h4>
+            <p style="font-size:12px;color:var(--grey-4);margin-bottom:12px">Creates the unit and its leader account in one step.</p>
+            <div class="fg"><label>Unit Type</label>
+              <select id="newUnitType">
+                <option value="Hall">Hall</option>
+                <option value="Hostel">Hostel</option>
+                <option value="Department">Department</option>
+              </select>
+            </div>
+            <div class="fg"><label>Unit Name</label><input type="text" id="newUnitName" placeholder="e.g. Unity Hall"/></div>
+            <div class="fg"><label>Leader Full Name</label><input type="text" id="newUnitLeaderName" placeholder="Leader's name"/></div>
+            <div class="fg"><label>Leader Username</label><input type="text" id="newUnitLeaderUser" placeholder="Username"/></div>
+            <div class="fg"><label>Leader Password</label><input type="password" id="newUnitLeaderPass" placeholder="Password"/></div>
+            <button class="btn-red" style="background:var(--green)" onclick="addUnit()">+ Create Unit</button>
+          </div>
+          <div class="setup-section" style="border:1.5px solid rgba(200,16,46,.25)">
+            <h4 style="color:var(--red)">Remove a Leader / Unit</h4>
+            <p style="font-size:12px;color:var(--grey-4);margin-bottom:12px">Their attendance records are kept.</p>
+            <div class="fg"><label>Select Leader</label><select id="delSel"></select></div>
+            <button class="btn-red" style="background:var(--grey-4)" onclick="removeLeader()">Remove</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function show(id){
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+  function toggleSidebar(sideId, scrimId){
+    document.getElementById(sideId).classList.toggle('open');
+    document.getElementById(scrimId).classList.toggle('open');
+  }
+</script>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc, collection, getDocs,
+           addDoc, deleteDoc, query, orderBy, where, updateDoc }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey:"AIzaSyD8NFqxOjVNHFCgB2uzr7gyr28ho6eJYiU",
+    authDomain:"ccf-database-9966e.firebaseapp.com",
+    projectId:"ccf-database-9966e",
+    storageBucket:"ccf-database-9966e.firebasestorage.app",
+    messagingSenderId:"834572794978",
+    appId:"1:834572794978:web:d31ec4c9229801b473a53b"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+
+  let CU = null, ATT = {}, MEMBERS_MAP = {}, NOTES = {}, noteTarget = null;
+
+  window.show = function(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); };
+  window.toggleSidebar = function(sideId, scrimId){
+    document.getElementById(sideId).classList.toggle('open');
+    document.getElementById(scrimId).classList.toggle('open');
+  };
+  function v(id){ return document.getElementById(id)?.value?.trim()||''; }
+  function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function fmtFull(d){ return d.toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'}); }
+  function fmtShort(s){ const d=new Date(s); return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); }
+  function rel(s){ const d=(Date.now()-new Date(s))/1000; return d<60?'just now':d<3600?Math.floor(d/60)+'m ago':d<86400?Math.floor(d/3600)+'h ago':Math.floor(d/86400)+'d ago'; }
+  function svcLbl(s){ return {s1:'Sunday Service',mw:'Midweek',pm:'Prayer Mtg',sp:'Special'}[s]||s; }
+  function set(id,h){ const el=document.getElementById(id); if(!el)return; el[typeof h==='string'&&h.includes('<')?'innerHTML':'textContent']=h; }
+  function normName(s){ return String(s||'').trim().toLowerCase().replace(/\s+/g,' '); }
+  let tTimer;
+  function toast(msg,type=''){ const el=document.getElementById('toast'); el.textContent=msg; el.className='show '+type; clearTimeout(tTimer); tTimer=setTimeout(()=>el.className='',3000); }
+  window.toast=toast;
+  function setLoading(on){ document.getElementById('loadingOverlay').style.display=on?'flex':'none'; }
+  function btnLoading(id,on,label=''){ const btn=document.getElementById(id); if(!btn)return; btn.disabled=on; btn.textContent=on?'Please wait…':label; }
+  function persist(){ localStorage.setItem('ccf_ses',JSON.stringify(CU)); }
+  function restore(){
+    try{
+      const s=localStorage.getItem('ccf_ses');
+      if(!s){setLoading(false);show('sLogin');return;}
+      CU=JSON.parse(s);
+      if(CU.role==='admin') showAdmin();
+      else if(CU.role==='member') showMember();
+      else showLeader();
+    }catch{ setLoading(false); show('sLogin'); }
+  }
+
+  window.doLogin = async function(){
+    const u=v('lUser'), p=v('lPass');
+    if(!u||!p){toast('Enter username and password','err');return;}
+    btnLoading('loginBtn',true,'Sign In');
+    try{
+      const adminDoc=await getDoc(doc(db,'config','admin'));
+      if(adminDoc.exists()){
+        const a=adminDoc.data();
+        if(u===a.username&&p===a.password){
+          CU={username:a.username,name:a.name||'CCF Admin',role:'admin'};
+          persist(); showAdmin(); return;
+        }
+      }
+      const snap=await getDocs(query(collection(db,'users'),where('username','==',u)));
+      if(snap.empty){toast('Incorrect credentials','err');return;}
+      const ud=snap.docs[0].data();
+      if(ud.password!==p){toast('Incorrect credentials','err');return;}
+      CU={...ud,id:snap.docs[0].id};
+      persist();
+      if(CU.role==='member') showMember(); else showLeader();
+    }catch(e){toast('Connection error','err');console.error(e);}
+    finally{ btnLoading('loginBtn',false,'Sign In'); }
+  };
+
+  window.doRegister = async function(){
+    const unitType=document.getElementById('rUnitType').value;
+    const unit=v('rUnit'), name=v('rName'), user=v('rUser'), pass=v('rPass');
+    if(!unit||!name||!user||!pass){toast('Please fill all fields','err');return;}
+    btnLoading('registerBtn',true,'Create Account');
+    try{
+      const adminDoc=await getDoc(doc(db,'config','admin'));
+      if(adminDoc.exists()&&adminDoc.data().username===user){toast('Username already taken','err');return;}
+      const snap=await getDocs(query(collection(db,'users'),where('username','==',user)));
+      if(!snap.empty){toast('Username already taken','err');return;}
+      await addDoc(collection(db,'users'),{username:user,password:pass,name,unit,unitType,role:'leader'});
+      toast('Account created — sign in!','ok');
+      ['rUnit','rName','rUser','rPass'].forEach(id=>document.getElementById(id).value='');
+      show('sLogin');
+    }catch(e){toast('Registration failed','err');console.error(e);}
+    finally{ btnLoading('registerBtn',false,'Create Account'); }
+  };
+
+  window.doLogout = function(){
+    CU=null; NOTES={};
+    stopLocationWatch();
+    localStorage.removeItem('ccf_ses');
+    show('sLogin');
+    document.getElementById('lUser').value='';
+    document.getElementById('lPass').value='';
+  };
+
+  // ===== Leader sidebar panel switching =====
+  window.switchLeaderPanel = function(panelId, btnEl){
+    document.querySelectorAll('#leaderSidebar .sidebar-item').forEach(b=>b.classList.remove('on'));
+    if(btnEl) btnEl.classList.add('on');
+    document.querySelectorAll('#sLeader .panel').forEach(p=>p.classList.remove('on'));
+    document.getElementById(panelId).classList.add('on');
+    if(panelId==='pLLocations') loadLeaderLocations();
+    // close mobile drawer after navigating
+    const sb=document.getElementById('leaderSidebar'), sc=document.getElementById('leaderScrim');
+    if(sb.classList.contains('open')){ sb.classList.remove('open'); sc.classList.remove('open'); }
+  };
+
+  async function showLeader(){
+    show('sLeader');
+    set('lNavUnit',CU.unit); set('lNavName',CU.name);
+    set('banUnit',CU.unit); set('banDate',fmtFull(new Date()));
+    setLoading(false); ATT={}; MEMBERS_MAP={};
+    const today=new Date().toISOString().split('T')[0];
+    document.getElementById('dbDate').value=today;
+    document.getElementById('dmDate').value=today;
+    try{
+      const snap=await getDocs(query(collection(db,'members'),where('unit','==',CU.unit)));
+      snap.forEach(d=>{ const md=d.data(); ATT[md.name]=false; MEMBERS_MAP[md.name]={...md,docId:d.id}; });
+      const notesSnap=await getDocs(query(collection(db,'notes'),where('unit','==',CU.unit)));
+      NOTES={};
+      notesSnap.forEach(d=>{ const nd=d.data(); NOTES[nd.member]={text:nd.text,docId:d.id}; });
+    }catch(e){console.error(e);}
+    counts(); renderMembers(); loadLeaderLocations();
+  }
+
+  window.renderMembers = function(){
+    const q=document.getElementById('mSearch').value.toLowerCase();
+    const names=Object.keys(ATT).filter(n=>n.toLowerCase().includes(q));
+    set('mCount',names.length+' members');
+    const el=document.getElementById('mList');
+    if(!names.length){el.innerHTML='<div class="empty">No members yet — tap + Add Member below.</div>';return;}
+    el.innerHTML=names.map(n=>{
+      const on=ATT[n];
+      const hasNote=!!(NOTES[n]&&NOTES[n].text);
+      const ini=n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+      const safe=encodeURIComponent(n);
+      return `<div class="mrow">
+        <div class="avatar ${on?'on':''}">${ini}</div>
+        <div class="minfo">
+          <div class="mname">${esc(n)}</div>
+          <div class="mstatus">${on?'✅ Present':'—'}${hasNote?' · 📝':''}</div>
+        </div>
+        <button class="info-btn" onclick="openProfileModal('${safe}')">👤</button>
+        <button class="note-btn ${hasNote?'has-note':''}" onclick="openNoteModal('${safe}')">📝</button>
+        <button class="del-btn" onclick="removeMember('${safe}')">✕</button>
+        <button class="tog ${on?'on':''}" onclick="tog('${safe}')"></button>
+      </div>`;
+    }).join('');
+  };
+
+  window.tog = function(enc){ const n=decodeURIComponent(enc); ATT[n]=!ATT[n]; counts(); renderMembers(); };
+
+  function counts(){
+    const vals=Object.values(ATT);
+    const p=vals.filter(Boolean).length, t=vals.length;
+    set('sP',p); set('sA',t-p); set('sT',t);
+    set('sPct',t?Math.round(p/t*100)+'%':'0%');
+  }
+
+  window.openAddMemberModal = function(){
+    ['mNewName','mNewProg','mNewHall','mNewPhone','mNewUser','mNewPass'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('addMemberModal').style.display='flex';
+    setTimeout(()=>document.getElementById('mNewName').focus(),150);
+  };
+  window.cancelAddMember = function(){ document.getElementById('addMemberModal').style.display='none'; };
+
+  window.confirmAddMember = async function(){
+    const name=v('mNewName'), prog=v('mNewProg'), hall=v('mNewHall'), phone=v('mNewPhone'), user=v('mNewUser'), pass=v('mNewPass');
+    if(!name){toast('Full name is required','err');return;}
+    if(ATT.hasOwnProperty(name)){toast('Member already in list','err');return;}
+    try{
+      const memberDoc={name, unit:CU.unit, programme:prog, hall:hall, phone:phone, addedAt:new Date().toISOString()};
+      const ref=await addDoc(collection(db,'members'),memberDoc);
+      ATT[name]=false;
+      MEMBERS_MAP[name]={...memberDoc,docId:ref.id};
+      if(user&&pass){
+        const adminDoc=await getDoc(doc(db,'config','admin'));
+        if(adminDoc.exists()&&adminDoc.data().username===user){
+          toast('Username taken — member added without login','err');
+        } else {
+          const snap=await getDocs(query(collection(db,'users'),where('username','==',user)));
+          if(!snap.empty){ toast('Username taken — member added without login','err'); }
+          else {
+            await addDoc(collection(db,'users'),{username:user,password:pass,name,unit:CU.unit,unitType:CU.unitType||'Hall',role:'member',programme:prog,hall:hall,phone:phone});
+            toast(name+' added with login ✓','ok');
+          }
+        }
+      } else { toast(name+' added','ok'); }
+      cancelAddMember(); counts(); renderMembers();
+    }catch(e){toast('Failed to add member','err');console.error(e);}
+  };
+
+  window.openProfileModal = function(enc){
+    const name=decodeURIComponent(enc);
+    const m=MEMBERS_MAP[name]||{};
+    document.getElementById('profileModalName').textContent=name;
+    document.getElementById('profileModalUnit').textContent=CU?CU.unit:'';
+    document.getElementById('profileModalBody').innerHTML=`
+      <div class="profile-detail"><span class="profile-key">Programme</span><span class="profile-val">${esc(m.programme||'—')}</span></div>
+      <div class="profile-detail"><span class="profile-key">Hall / Hostel</span><span class="profile-val">${esc(m.hall||'—')}</span></div>
+      <div class="profile-detail"><span class="profile-key">Phone</span><span class="profile-val">${esc(m.phone||'—')}</span></div>
+      <div class="profile-detail"><span class="profile-key">Unit</span><span class="profile-val">${esc(m.unit||'—')}</span></div>
+    `;
+    document.getElementById('profileModal').style.display='flex';
+  };
+  window.closeProfileModal = function(){ document.getElementById('profileModal').style.display='none'; };
+
+  window.openAdminProfileModal = async function(memberId){
+    try{
+      const snap=await getDoc(doc(db,'members',memberId));
+      const m=snap.exists()?snap.data():{};
+      document.getElementById('profileModalName').textContent=m.name||'—';
+      document.getElementById('profileModalUnit').textContent=m.unit||'';
+      document.getElementById('profileModalBody').innerHTML=`
+        <div class="profile-detail"><span class="profile-key">Programme</span><span class="profile-val">${esc(m.programme||'—')}</span></div>
+        <div class="profile-detail"><span class="profile-key">Hall / Hostel</span><span class="profile-val">${esc(m.hall||'—')}</span></div>
+        <div class="profile-detail"><span class="profile-key">Phone</span><span class="profile-val">${esc(m.phone||'—')}</span></div>
+        <div class="profile-detail"><span class="profile-key">Unit</span><span class="profile-val">${esc(m.unit||'—')}</span></div>
+        <div class="profile-detail"><span class="profile-key">Added</span><span class="profile-val">${m.addedAt?fmtShort(m.addedAt):'—'}</span></div>
+      `;
+      document.getElementById('profileModal').style.display='flex';
+    }catch(e){toast('Failed to load profile','err');console.error(e);}
+  };
+
+  window.removeMember = async function(enc){
+    const n=decodeURIComponent(enc);
+    if(!confirm('Remove '+n+' from your unit?')) return;
+    try{
+      const snap=await getDocs(query(collection(db,'members'),where('name','==',n),where('unit','==',CU.unit)));
+      for(const d of snap.docs) await deleteDoc(doc(db,'members',d.id));
+      const uSnap=await getDocs(query(collection(db,'users'),where('name','==',n),where('unit','==',CU.unit),where('role','==','member')));
+      for(const d of uSnap.docs){
+        const ud=d.data();
+        await deleteDoc(doc(db,'users',d.id));
+        if(ud.username){ try{ await deleteDoc(doc(db,'locations',ud.username)); }catch(_){} }
+      }
+      delete ATT[n]; delete MEMBERS_MAP[n]; counts(); renderMembers(); loadLeaderLocations(); toast(n+' removed');
+    }catch(e){toast('Failed to remove member','err');console.error(e);}
+  };
+
+  window.submitAtt = async function(){
+    const svc=document.getElementById('svcSel').value;
+    const pr=Object.entries(ATT).filter(([,val])=>val).map(([k])=>k);
+    const t=Object.keys(ATT).length;
+    const pct=t?Math.round(pr.length/t*100):0;
+    try{
+      await addDoc(collection(db,'records'),{
+        unit:CU.unit, service:svc, date:new Date().toISOString(),
+        present:pr.length, absent:t-pr.length, total:t, pct,
+        presentNames:pr, by:CU.username, type:'attendance'
+      });
+      set('oMsg',`${pr.length} of ${t} marked present (${pct}%) for ${svcLbl(svc)}.`);
+      document.getElementById('oSubmit').style.display='flex';
+    }catch(e){toast('Submit failed','err');console.error(e);}
+  };
+  window.closeSubmit = function(){ document.getElementById('oSubmit').style.display='none'; showLeader(); };
+
+  window.submitDawnBroadcast = async function(){
+    const date=v('dbDate'), count=v('dbCount'), notes=v('dbNotes');
+    if(!date||!count){toast('Date and participant count required','err');return;}
+    try{
+      await addDoc(collection(db,'leaderReports'),{
+        unit:CU.unit, by:CU.username, leaderName:CU.name,
+        type:'dawn', date:date, count:parseInt(count)||0,
+        notes, submittedAt:new Date().toISOString()
+      });
+      toast('Dawn meeting report submitted ✓','ok');
+      document.getElementById('dbCount').value='';
+      document.getElementById('dbNotes').value='';
+    }catch(e){toast('Submit failed','err');console.error(e);}
+  };
+
+  window.submitDeptMeeting = async function(){
+    const date=v('dmDate'), agenda=v('dmAgenda'), count=v('dmCount'), notes=v('dmNotes');
+    if(!date||!agenda){toast('Date and agenda required','err');return;}
+    try{
+      await addDoc(collection(db,'leaderReports'),{
+        unit:CU.unit, by:CU.username, leaderName:CU.name,
+        type:'dept', date:date, agenda, count:parseInt(count)||0,
+        notes, submittedAt:new Date().toISOString()
+      });
+      toast('Meeting report submitted ✓','ok');
+      document.getElementById('dmAgenda').value='';
+      document.getElementById('dmCount').value='';
+      document.getElementById('dmNotes').value='';
+    }catch(e){toast('Submit failed','err');console.error(e);}
+  };
+
+  window.openNoteModal = function(enc){
+    const name=decodeURIComponent(enc); noteTarget=name;
+    document.getElementById('noteModalTitle').textContent='Note — '+name;
+    document.getElementById('noteText').value=(NOTES[name]&&NOTES[name].text)||'';
+    document.getElementById('noteModal').style.display='flex';
+    setTimeout(()=>document.getElementById('noteText').focus(),150);
+  };
+  window.closeNoteModal = function(){ document.getElementById('noteModal').style.display='none'; noteTarget=null; };
+  window.saveNote = async function(){
+    if(!noteTarget) return;
+    const text=document.getElementById('noteText').value.trim();
+    try{
+      if(NOTES[noteTarget]&&NOTES[noteTarget].docId){
+        await updateDoc(doc(db,'notes',NOTES[noteTarget].docId),{text,updatedAt:new Date().toISOString()});
+        NOTES[noteTarget].text=text;
+      } else {
+        const ref=await addDoc(collection(db,'notes'),{member:noteTarget,unit:CU.unit,text,createdAt:new Date().toISOString(),by:CU.username});
+        NOTES[noteTarget]={text,docId:ref.id};
+      }
+      closeNoteModal(); renderMembers(); toast('Note saved','ok');
+    }catch(e){toast('Failed to save note','err');console.error(e);}
+  };
+
+  let locWatchId=null, locSharing=false;
+  window.toggleMemberLocation = async function(){
+    if(!CU) return;
+    if(!locSharing){
+      if(!navigator.geolocation){toast('Geolocation not supported','err');return;}
+      navigator.geolocation.getCurrentPosition(
+        async pos=>{
+          locSharing=true; updateLocUI(true); await pushLocation(pos);
+          locWatchId=navigator.geolocation.watchPosition(async p=>{await pushLocation(p);},err=>{console.warn(err);},{enableHighAccuracy:true,maximumAge:30000,timeout:20000});
+          toast('Location sharing on','ok');
+        },
+        err=>{ toast(err.code===1?'Location permission denied':'Could not get location','err'); },
+        {enableHighAccuracy:true,timeout:15000}
+      );
+    } else {
+      stopLocationWatch();
+      try{ await setDoc(doc(db,'locations',CU.username),{sharing:false,name:CU.name,unit:CU.unit,ts:new Date().toISOString()},{merge:true}); }catch(e){console.error(e);}
+      toast('Location sharing off');
+    }
+  };
+  async function pushLocation(pos){
+    if(!CU) return;
+    try{ await setDoc(doc(db,'locations',CU.username),{sharing:true,name:CU.name,unit:CU.unit,lat:pos.coords.latitude,lng:pos.coords.longitude,accuracy:pos.coords.accuracy,ts:new Date().toISOString()},{merge:true}); }
+    catch(e){console.error(e);}
+  }
+  function stopLocationWatch(){
+    if(locWatchId!==null){navigator.geolocation.clearWatch(locWatchId);locWatchId=null;}
+    locSharing=false; updateLocUI(false);
+  }
+  function updateLocUI(on){
+    const tog=document.getElementById('locBigTog');
+    const icon=document.getElementById('locToggleIcon');
+    const sub=document.getElementById('locToggleSub');
+    if(tog)  tog.classList.toggle('on',on);
+    if(icon) icon.classList.toggle('active',on);
+    if(sub)  sub.textContent=on?'On — your leader can see your location':'Off — your leader cannot see you';
+  }
+  window.loadLeaderLocations = async function(){
+    const el=document.getElementById('leaderLocList'); if(!el) return;
+    el.innerHTML='<div class="empty" style="padding:14px 0">Loading…</div>';
+    try{
+      const snap=await getDocs(query(collection(db,'locations'),where('unit','==',CU.unit)));
+      if(snap.empty){el.innerHTML='<div class="empty" style="padding:14px 0">No members sharing location yet.</div>';return;}
+      const locs=snap.docs.map(d=>d.data()).filter(d=>d.name);
+      if(!locs.length){el.innerHTML='<div class="empty" style="padding:14px 0">No members sharing location yet.</div>';return;}
+      locs.sort((a,b)=>(b.sharing?1:0)-(a.sharing?1:0)||a.name.localeCompare(b.name));
+      el.innerHTML=locs.map(loc=>{
+        const isLive=!!loc.sharing;
+        const mapsUrl=(loc.lat&&loc.lng)?`https://www.google.com/maps?q=${loc.lat},${loc.lng}`:'';
+        const accStr=loc.accuracy?` · ±${Math.round(loc.accuracy)}m`:'';
+        return `<div class="loc-row">
+          <div class="loc-dot ${isLive?'live':''}"></div>
+          <div class="loc-info"><div class="loc-name">${esc(loc.name)}</div><div class="loc-meta">${isLive?'Sharing · '+rel(loc.ts)+accStr:'Not sharing'}</div></div>
+          ${(mapsUrl&&isLive)?`<button class="loc-map-btn" onclick="window.open('${mapsUrl}','_blank')">Open Map</button>`:''}
+        </div>`;
+      }).join('');
+    }catch(e){el.innerHTML='<div class="empty" style="padding:14px 0">Failed to load.</div>';console.error(e);}
+  };
+  window.addEventListener('pagehide',()=>{ if(locWatchId!==null) stopLocationWatch(); });
+
+  async function showMember(){
+    show('sMember');
+    set('memNavUnit',CU.unit); set('memNavName',CU.name);
+    set('memHeroName','Hi, '+CU.name.split(' ')[0]+'!');
+    set('memHeroUnit',CU.unit); set('memUnitBadge',CU.unit);
+    setLoading(false); updateLocUI(false);
+  }
+
+  window.sendComplaint = async function(){
+    const text=document.getElementById('complaintText').value.trim();
+    if(!text){toast('Please write your complaint first','err');return;}
+    btnLoading('complaintBtn',true,'Send to Admin');
+    try{
+      await addDoc(collection(db,'complaints'),{
+        from:CU.name, unit:CU.unit, username:CU.username||'',
+        text, submittedAt:new Date().toISOString(), read:false
+      });
+      document.getElementById('complaintText').value='';
+      toast('Complaint sent to admin ✓','ok');
+    }catch(e){toast('Failed to send','err');console.error(e);}
+    finally{ btnLoading('complaintBtn',false,'Send to Admin'); }
+  };
+
+  async function showAdmin(){
+    show('sAdmin'); set('aNavName',CU.name); setLoading(false);
+    await renderOverview(); renderHistory('all'); renderSetup();
+    try{
+      const snap=await getDocs(collection(db,'users'));
+      const units=[...new Set(snap.docs.map(d=>d.data().unit).filter(Boolean))].sort();
+      ['repUnit','memberUnitFilter'].forEach(selId=>{
+        const sel=document.getElementById(selId);
+        if(!sel) return;
+        sel.innerHTML=`<option value="all">All Units</option>`+units.map(u=>`<option value="${esc(u)}">${esc(u)}</option>`).join('');
+      });
+    }catch(e){console.error(e);}
+  }
+
+  window.renderOverview = async function(){
+    const svc=document.getElementById('aSvc')?document.getElementById('aSvc').value:'s1';
+    try{
+      const [usersSnap,recordsSnap]=await Promise.all([
+        getDocs(collection(db,'users')),
+        getDocs(query(collection(db,'records'),orderBy('date','desc')))
+      ]);
+      const users=usersSnap.docs.map(d=>d.data()).filter(u=>u.role==='leader');
+      const records=recordsSnap.docs.map(d=>d.data()).filter(r=>r.type==='attendance'||!r.type);
+      const units=[...new Set(users.map(u=>u.unit))];
+      const latest={};
+      records.filter(r=>r.service===svc).slice().reverse().forEach(r=>{ latest[r.unit]=r; });
+      const recs=Object.values(latest);
+      const tp=recs.reduce((a,r)=>a+r.present,0), tt=recs.reduce((a,r)=>a+r.total,0);
+      const avg=recs.length?Math.round(recs.reduce((a,r)=>a+r.pct,0)/recs.length):0;
+      set('oSum',`
+        <div class="sum-mini"><div class="sum-val">${recs.length}</div><div class="sum-lbl">Reported</div></div>
+        <div class="sum-mini"><div class="sum-val">${units.length-recs.length}</div><div class="sum-lbl">Pending</div></div>
+        <div class="sum-mini"><div class="sum-val">${tp}</div><div class="sum-lbl">Present</div></div>
+        <div class="sum-mini"><div class="sum-val">${tt-tp}</div><div class="sum-lbl">Absent</div></div>
+        <div class="sum-mini"><div class="sum-val">${tt}</div><div class="sum-lbl">Total</div></div>
+        <div class="sum-mini"><div class="sum-val">${avg}%</div><div class="sum-lbl">Avg</div></div>
+      `);
+      const userMap={};
+      usersSnap.docs.forEach(d=>{ const ud=d.data(); if(ud.unit) userMap[ud.unit]=ud.unitType||'Hall'; });
+      const typeOrder=['Hall','Hostel','Department'];
+      const typeLabels={Hall:'🏛 Halls',Hostel:'🏠 Hostels',Department:'📚 Departments'};
+      let html='';
+      typeOrder.forEach(type=>{
+        const typeUnits=units.filter(u=>(userMap[u]||'Hall')===type);
+        if(!typeUnits.length) return;
+        html+=`<div class="unit-type-hd">${typeLabels[type]}</div>`;
+        typeUnits.forEach(u=>{
+          const r=latest[u];
+          if(!r){html+=`<div class="scard"><div class="scard-hd"><div class="scard-title">${esc(u)}</div><span class="badge p">Pending</span></div><div style="font-size:12px;color:var(--grey-3)">No attendance submitted yet</div></div>`;return;}
+          const bc=r.pct>=75?'g':r.pct>=50?'a':'r';
+          const names=(r.presentNames||[]).map(n=>`<span class="name-tag">${esc(n)}</span>`).join('');
+          html+=`<div class="scard">
+            <div class="scard-hd"><div class="scard-title">${esc(u)}</div><span class="badge ${bc}">${r.pct}%</span></div>
+            <div class="plabels"><span>${r.present} present</span><span>${r.total} total</span></div>
+            <div class="pbar"><div class="pfill ${bc}" style="width:${r.pct}%"></div></div>
+            ${names?`<div class="name-tags">${names}</div>`:''}
+            <div style="font-size:11px;color:var(--grey-3);margin-top:6px">Submitted ${rel(r.date)} · by ${esc(r.by)}</div>
+          </div>`;
+        });
+      });
+      set('oCards',html||'<div class="empty">No units registered yet.</div>');
+    }catch(e){console.error(e);toast('Failed to load overview','err');}
+  };
+
+  window.renderUnitTab = async function(type){
+    const el=document.getElementById('hCards'+type); if(!el) return;
+    el.innerHTML='<div class="empty">Loading…</div>';
+    try{
+      const [usersSnap,recordsSnap,membersSnap]=await Promise.all([
+        getDocs(collection(db,'users')),
+        getDocs(query(collection(db,'records'),orderBy('date','desc'))),
+        getDocs(collection(db,'members'))
+      ]);
+      const users=usersSnap.docs.map(d=>d.data()).filter(u=>u.role==='leader');
+      const records=recordsSnap.docs.map(d=>d.data()).filter(r=>r.type==='attendance'||!r.type);
+      const members=membersSnap.docs.map(d=>d.data());
+      const typeUnits=[...new Set(users.filter(u=>(u.unitType||'Hall')===type).map(u=>u.unit))].sort();
+      if(!typeUnits.length){el.innerHTML=`<div class="empty">No ${type.toLowerCase()}s registered yet.</div>`;return;}
+      el.innerHTML=typeUnits.map(u=>{
+        const recs=records.filter(r=>r.unit===u).slice(0,5);
+        const mCnt=members.filter(m=>m.unit===u).length;
+        return `<div class="scard">
+          <div class="scard-hd"><div class="scard-title">${esc(u)}</div><span style="font-size:11px;color:var(--grey-3)">${mCnt} members</span></div>
+          ${recs.length?recs.map(r=>{
+            const names=(r.presentNames||[]).map(n=>`<span class="name-tag">${esc(n)}</span>`).join('');
+            return `<div style="margin-bottom:10px">
+              <div class="plabels"><span>${svcLbl(r.service)} · ${fmtShort(r.date)}</span><span>${r.present}/${r.total} · ${r.pct}%</span></div>
+              <div class="pbar"><div class="pfill ${r.pct>=75?'g':r.pct>=50?'a':'r'}" style="width:${r.pct}%"></div></div>
+              ${names?`<div class="name-tags" style="margin-top:6px">${names}</div>`:''}
+            </div>`;
+          }).join(''):'<div style="font-size:12px;color:var(--grey-3)">No records yet</div>'}
+        </div>`;
+      }).join('');
+    }catch(e){el.innerHTML='<div class="empty">Failed to load.</div>';console.error(e);}
+  };
+
+  window.renderReports = async function(){
+    const unitFilter=document.getElementById('repUnit').value;
+    const typeFilter=document.getElementById('repType').value;
+    const out=document.getElementById('repOut');
+    out.innerHTML='<div class="empty">Loading…</div>';
+    try{
+      const [attSnap,lrSnap]=await Promise.all([
+        getDocs(query(collection(db,'records'),orderBy('date','desc'))),
+        getDocs(query(collection(db,'leaderReports'),orderBy('submittedAt','desc')))
+      ]);
+      let attRecords=attSnap.docs.map(d=>d.data()).filter(r=>r.type==='attendance'||!r.type);
+      let lrRecords=lrSnap.docs.map(d=>d.data());
+      if(unitFilter!=='all'){
+        attRecords=attRecords.filter(r=>r.unit===unitFilter);
+        lrRecords=lrRecords.filter(r=>r.unit===unitFilter);
+      }
+      let html='';
+
+      if(typeFilter==='all'||typeFilter==='attendance'){
+        html+=`<div class="unit-type-hd">📋 Attendance Records</div>`;
+        if(!attRecords.length){ html+='<div class="empty">No attendance records.</div>'; }
+        else {
+          const units=[...new Set(attRecords.map(r=>r.unit))].sort();
+          units.forEach(u=>{
+            const ur=attRecords.filter(r=>r.unit===u);
+            const uAvg=Math.round(ur.reduce((a,r)=>a+r.pct,0)/ur.length);
+            html+=`<div class="scard" style="margin-bottom:12px">
+              <div class="scard-hd"><div class="scard-title">${esc(u)}</div><span class="badge ${uAvg>=75?'g':uAvg>=50?'a':'r'}">${uAvg}% avg</span></div>`;
+            ur.slice(0,10).forEach(r=>{
+              const names=(r.presentNames||[]).map(n=>`<span class="name-tag">${esc(n)}</span>`).join('');
+              html+=`<div style="padding:8px 0;border-bottom:1px solid var(--grey-1)">
+                <div class="plabels"><span>${svcLbl(r.service)} · ${fmtShort(r.date)}</span><span>${r.present}/${r.total} · ${r.pct}%</span></div>
+                <div class="pbar" style="margin-top:4px"><div class="pfill ${r.pct>=75?'g':r.pct>=50?'a':'r'}" style="width:${r.pct}%"></div></div>
+                ${names?`<div class="name-tags" style="margin-top:6px">${names}</div>`:''}
+              </div>`;
+            });
+            html+=`</div>`;
+          });
+        }
+      }
+
+      if(typeFilter==='all'||typeFilter==='dawn'){
+        const dawn=lrRecords.filter(r=>r.type==='dawn');
+        html+=`<div class="unit-type-hd">📢 Dawn Meeting Reports</div>`;
+        if(!dawn.length){ html+='<div class="empty">No dawn meeting reports.</div>'; }
+        else {
+          const units=[...new Set(dawn.map(r=>r.unit))].sort();
+          units.forEach(u=>{
+            const ur=dawn.filter(r=>r.unit===u);
+            html+=`<div class="scard" style="margin-bottom:12px"><div class="scard-hd"><div class="scard-title">${esc(u)}</div><span class="badge b">${ur.length} reports</span></div>`;
+            ur.forEach(r=>{
+              html+=`<div class="rep-row"><span class="rep-key">${r.date}</span><span class="rep-val">${r.count} participants${r.notes?' · '+esc(r.notes.slice(0,40)):''}</span></div>`;
+            });
+            html+=`</div>`;
+          });
+        }
+      }
+
+      if(typeFilter==='all'||typeFilter==='dept'){
+        const dept=lrRecords.filter(r=>r.type==='dept');
+        html+=`<div class="unit-type-hd">🏛 Departmental Meeting Reports</div>`;
+        if(!dept.length){ html+='<div class="empty">No meeting reports.</div>'; }
+        else {
+          const units=[...new Set(dept.map(r=>r.unit))].sort();
+          units.forEach(u=>{
+            const ur=dept.filter(r=>r.unit===u);
+            html+=`<div class="scard" style="margin-bottom:12px"><div class="scard-hd"><div class="scard-title">${esc(u)}</div><span class="badge b">${ur.length} meetings</span></div>`;
+            ur.forEach(r=>{
+              html+=`<div style="padding:8px 0;border-bottom:1px solid var(--grey-1)">
+                <div style="font-size:12px;font-weight:700;color:var(--grey-5)">${r.date} · ${esc(r.agenda||'')}</div>
+                <div style="font-size:11px;color:var(--grey-3);margin-top:3px">${r.count} present${r.notes?' · '+esc(r.notes.slice(0,60)):''}</div>
+              </div>`;
+            });
+            html+=`</div>`;
+          });
+        }
+      }
+
+      out.innerHTML=html||'<div class="empty">No records found.</div>';
+    }catch(e){out.innerHTML='<div class="empty">Failed to load reports.</div>';console.error(e);}
+  };
+
+  window.renderAdminMembers = async function(){
+    const unitFilter=document.getElementById('memberUnitFilter').value;
+    const el=document.getElementById('adminMemberList');
+    el.innerHTML='<div class="empty">Loading…</div>';
+    try{
+      const snap=await getDocs(collection(db,'members'));
+      let members=snap.docs.map(d=>({...d.data(),docId:d.id}));
+      if(unitFilter!=='all') members=members.filter(m=>m.unit===unitFilter);
+      members.sort((a,b)=>a.name.localeCompare(b.name));
+      if(!members.length){el.innerHTML='<div class="empty">No members found.</div>';return;}
+      const units=[...new Set(members.map(m=>m.unit))].sort();
+      el.innerHTML=units.map(u=>{
+        const um=members.filter(m=>m.unit===u);
+        return `<div class="scard" style="margin-bottom:12px">
+          <div class="scard-hd"><div class="scard-title">${esc(u)}</div><span style="font-size:11px;color:var(--grey-3)">${um.length} members</span></div>
+          ${um.map(m=>`<div class="urow">
+            <div class="uinfo">
+              <div class="uname">${esc(m.name)}</div>
+              <div class="umeta">${esc(m.programme||'—')} · ${esc(m.hall||'—')} · ${esc(m.phone||'—')}</div>
+            </div>
+            <button class="info-btn" onclick="openAdminProfileModal('${m.docId}')">👤</button>
+          </div>`).join('')}
+        </div>`;
+      }).join('');
+    }catch(e){el.innerHTML='<div class="empty">Failed to load.</div>';console.error(e);}
+  };
+
+  window.renderComplaints = async function(){
+    const el=document.getElementById('complaintList');
+    el.innerHTML='<div class="empty">Loading…</div>';
+    try{
+      const snap=await getDocs(query(collection(db,'complaints'),orderBy('submittedAt','desc')));
+      const complaints=snap.docs.map(d=>d.data());
+      set('complaintCount',complaints.length+' total');
+      if(!complaints.length){el.innerHTML='<div class="empty">No complaints yet.</div>';return;}
+      el.innerHTML=`<div class="scard">`+complaints.map(c=>`
+        <div class="complaint-row">
+          <div class="complaint-meta">${esc(c.from)} · ${esc(c.unit)} · ${rel(c.submittedAt)}</div>
+          <div class="complaint-text">${esc(c.text)}</div>
+        </div>`).join('')+`</div>`;
+    }catch(e){el.innerHTML='<div class="empty">Failed to load.</div>';console.error(e);}
+  };
+
+  let hFilter='all';
+  window.renderHistory = async function(f){
+    hFilter=f||hFilter;
+    try{
+      const [usersSnap,recordsSnap]=await Promise.all([
+        getDocs(collection(db,'users')),
+        getDocs(query(collection(db,'records'),orderBy('date','desc')))
+      ]);
+      const users=usersSnap.docs.map(d=>d.data()).filter(u=>u.role==='leader');
+      const records=recordsSnap.docs.map(d=>d.data()).filter(r=>r.type==='attendance'||!r.type);
+      const typeOrder=['Hall','Hostel','Department'];
+      const typeIcons={Hall:'🏛',Hostel:'🏠',Department:'📚'};
+      let chips=`<button class="chip ${hFilter==='all'?'on':''}" onclick="renderHistory('all')">All Units</button>`;
+      typeOrder.forEach(type=>{
+        [...new Set(users.filter(u=>(u.unitType||'Hall')===type).map(u=>u.unit))].sort().forEach(u=>{
+          const safe=encodeURIComponent(u);
+          chips+=`<button class="chip ${hFilter===u?'on':''}" onclick="renderHistory(decodeURIComponent('${safe}'))">${typeIcons[type]} ${esc(u)}</button>`;
+        });
+      });
+      set('hChips',chips);
+      const recs=hFilter==='all'?records:records.filter(r=>r.unit===hFilter);
+      set('hBody',recs.length?recs.map(r=>{
+        const names=(r.presentNames||[]).join(', ');
+        return `<tr>
+          <td>${fmtShort(r.date)}</td><td>${esc(r.unit)}</td><td>${svcLbl(r.service)}</td>
+          <td><strong>${r.present}</strong></td><td>${r.total}</td>
+          <td><span class="badge ${r.pct>=75?'g':r.pct>=50?'a':'r'}">${r.pct}%</span></td>
+          <td style="font-size:11px;color:var(--grey-4);max-width:160px">${esc(names)||'—'}</td>
+        </tr>`;
+      }).join(''):`<tr><td colspan="7" style="text-align:center;color:var(--grey-3);padding:20px">No records yet</td></tr>`);
+    }catch(e){console.error(e);}
+  };
+
+  window.renderSetup = async function(){
+    try{
+      const snap=await getDocs(collection(db,'users'));
+      const users=snap.docs.map(d=>({...d.data(),id:d.id})).filter(u=>u.role==='leader');
+      set('uList',users.length?users.map(u=>`<div class="urow">
+        <div class="uinfo"><div class="uname">${esc(u.name)}</div><div class="umeta">${esc(u.username)} · ${esc(u.unitType||'Hall')}: ${esc(u.unit)}</div></div>
+        <span class="rbadge leader">Leader</span>
+      </div>`).join(''):'<div style="font-size:12px;color:var(--grey-3)">No leaders yet.</div>');
+      document.getElementById('delSel').innerHTML=`<option value="">— Select leader —</option>`+
+        users.map(u=>`<option value="${u.id}">${esc(u.name)} (${esc(u.unitType||'Hall')}: ${esc(u.unit)})</option>`).join('');
+    }catch(e){console.error(e);}
+  };
+
+  window.addUnit = async function(){
+    const unitType=document.getElementById('newUnitType').value;
+    const unitName=document.getElementById('newUnitName').value.trim();
+    const leaderName=document.getElementById('newUnitLeaderName').value.trim();
+    const leaderUser=document.getElementById('newUnitLeaderUser').value.trim();
+    const leaderPass=document.getElementById('newUnitLeaderPass').value.trim();
+    if(!unitName||!leaderName||!leaderUser||!leaderPass){toast('Fill all unit fields','err');return;}
+    try{
+      const adminDoc=await getDoc(doc(db,'config','admin'));
+      if(adminDoc.exists()&&adminDoc.data().username===leaderUser){toast('Username taken','err');return;}
+      const snap=await getDocs(query(collection(db,'users'),where('username','==',leaderUser)));
+      if(!snap.empty){toast('Username already taken','err');return;}
+      await addDoc(collection(db,'users'),{username:leaderUser,password:leaderPass,name:leaderName,unit:unitName,unitType,role:'leader'});
+      ['newUnitName','newUnitLeaderName','newUnitLeaderUser','newUnitLeaderPass'].forEach(id=>document.getElementById(id).value='');
+      toast('Unit and leader created!','ok'); renderSetup();
+    }catch(e){toast('Failed to add unit','err');console.error(e);}
+  };
+
+  window.changePwd = async function(){
+    const c=v('pwCur'), n=v('pwNew'), cf=v('pwCon');
+    try{
+      const adminDoc=await getDoc(doc(db,'config','admin'));
+      if(!adminDoc.exists()||adminDoc.data().password!==c){toast('Current password incorrect','err');return;}
+      if(!n){toast('New password cannot be empty','err');return;}
+      if(n!==cf){toast('Passwords do not match','err');return;}
+      await updateDoc(doc(db,'config','admin'),{password:n});
+      ['pwCur','pwNew','pwCon'].forEach(id=>document.getElementById(id).value='');
+      toast('Password updated','ok');
+    }catch(e){toast('Update failed','err');console.error(e);}
+  };
+
+  window.removeLeader = async function(){
+    const id=document.getElementById('delSel').value;
+    if(!id){toast('Select a leader first','err');return;}
+    try{
+      const snap=await getDoc(doc(db,'users',id));
+      const u=snap.data();
+      if(!u||!confirm(`Remove ${u.name} (${u.unit})?`)) return;
+      await deleteDoc(doc(db,'users',id));
+      renderSetup(); toast(u.name+' removed');
+    }catch(e){toast('Failed to remove leader','err');console.error(e);}
+  };
+
+  // ===== Admin sidebar tab switching =====
+  window.switchTab = function(name){
+    const all=['Overview','Halls','Hostels','Depts','Reports','Members','Complaints','History','Setup'];
+    document.querySelectorAll('#adminSidebar .sidebar-item').forEach(b=>{
+      const matches = b.getAttribute('onclick') && b.getAttribute('onclick').includes(`'${name}'`);
+      b.classList.toggle('on', matches);
+    });
+    document.querySelectorAll('#sAdmin .panel').forEach(p=>p.classList.remove('on'));
+    document.getElementById('p'+name).classList.add('on');
+    if(name==='Overview')   renderOverview();
+    if(name==='Halls')      renderUnitTab('Hall');
+    if(name==='Hostels')    renderUnitTab('Hostel');
+    if(name==='Depts')      renderUnitTab('Department');
+    if(name==='Reports')    renderReports();
+    if(name==='Members')    renderAdminMembers();
+    if(name==='Complaints') renderComplaints();
+    if(name==='History')    renderHistory(hFilter);
+    if(name==='Setup')      renderSetup();
+    // close mobile drawer after navigating
+    const sb=document.getElementById('adminSidebar'), sc=document.getElementById('adminScrim');
+    if(sb.classList.contains('open')){ sb.classList.remove('open'); sc.classList.remove('open'); }
+  };
+
+  document.addEventListener('keydown',e=>{
+    if(e.key!=='Enter') return;
+    const active=document.querySelector('.screen.active');
+    if(active?.id==='sLogin')    doLogin();
+    if(active?.id==='sRegister') doRegister();
+  });
+
+  async function boot(){
+    try{
+      const adminRef=doc(db,'config','admin');
+      const adminDoc=await getDoc(adminRef);
+      if(!adminDoc.exists()) await setDoc(adminRef,{username:'ccfadmin',password:'Admin#CCF!9',name:'CCF Admin'});
+      restore();
+    }catch(e){
+      console.error(e); setLoading(false); show('sLogin');
+      toast('Could not connect to database','err');
+    }
+  }
+  window.addEventListener('load',boot);
+</script>
+</body>
+</html>
